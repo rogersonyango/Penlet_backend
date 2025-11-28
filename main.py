@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1.endpoints import auth, notes  # Add notes here
 from app.models import user, note  # Add note here
 from app.db.session import Base, engine
+from app.api.v1.endpoints import timetable
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -20,7 +21,8 @@ app.add_middleware(
 
 # Include routes
 app.include_router(auth.router, prefix="/api/v1")
-app.include_router(notes.router, prefix="/api/v1")  # Add this line
+app.include_router(timetable.router)
+# app.include_router(notes.router, prefix="/api/v1")  # Add this line
 
 @app.get("/")
 def root():
