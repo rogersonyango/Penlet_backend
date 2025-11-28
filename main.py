@@ -1,16 +1,16 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.v1.endpoints import auth, notes  # Add notes here
-from app.models import user, note  # Add note here
+from app.api.v1.endpoints import auth, notes
+from app.models import user, note  
 from app.db.session import Base, engine
-from app.api.v1.endpoints import timetable
+from app.api.v1.endpoints import timetable, alarms,reminder
 
-# Create database tables
+# Creates database tables
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Penlet API", version="1.0.0")
 
-# Allow your frontend to connect
+# Allows frontend to connect
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000"],
@@ -19,10 +19,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routes
 app.include_router(auth.router, prefix="/api/v1")
-app.include_router(timetable.router)
-# app.include_router(notes.router, prefix="/api/v1")  # Add this line
+app.include_router(alarms.router, prefix="/api/alarms", tags=["alarms"])
+app.include_router(reminder.router, prefix="/api/reminders", tags=["reminders"])
+app.include_router(timetable.router, prefix="/api/timetable", tags=["timetable"])
+
+
 
 @app.get("/")
 def root():
