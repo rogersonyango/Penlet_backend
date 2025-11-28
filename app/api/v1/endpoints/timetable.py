@@ -1,0 +1,141 @@
+# app/api/v1/endpoints/timetable.py
+
+"""
+Timetable API endpoints for managing user timetables and time slots.
+"""
+
+from typing import List, Optional
+
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+from datetime import datetime
+
+# Import schemas
+from app.schemas.timetable import (
+    Timetable,
+    TimetableCreate,
+    TimetableBase,
+    TimeSlot,
+    TimeSlotCreate,
+    TimeSlotBase
+)
+
+# Import CRUD functions with aliases to avoid name conflicts
+from app.crud.timetable import (
+    get_timetable as crud_get_timetable,
+    get_user_timetables as crud_get_user_timetables,
+    create_timetable as crud_create_timetable,
+    update_timetable as crud_update_timetable,
+    delete_timetable as crud_delete_timetable,
+    create_slot as crud_create_slot,
+    update_slot as crud_update_slot,
+    delete_slot as crud_delete_slot,
+    get_daily_schedule as crud_get_daily_schedule,
+    get_weekly_schedule as crud_get_weekly_schedule
+)
+
+from app.db.session import get_db
+
+router = APIRouter()
+
+
+@router.get("/", response_model=List[Timetable])
+def read_timetables(
+    user_id: int,
+    term: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """Retrieve all timetables for a user, optionally filtered by term."""
+    return crud_get_user_timetables(db, user_id=user_id, term=term)
+
+
+@router.post("/", response_model=Timetable)
+def create_timetable(
+    timetable: TimetableCreate,
+    db: Session = Depends(get_db)
+):
+    """Create a new timetable for a user."""
+    return crud_create_timetable(db=db, timetable=timetable)
+
+
+@router.get("/{timetable_id}/", response_model=Timetable)
+def read_timetable(timetable_id: int, db: Session = Depends(get_db)):
+    """Fetch a specific timetable by ID."""
+    timetable = crud_get_timetable(db, timetable_id)
+    if not timetable:
+        raise HTTPException(status_code=404, detail="Timetable not found")
+    return timetable
+
+
+@router.put("/{timetable_id}/", response_model=Timetable)
+def update_timetable(
+    timetable_id: int,
+    timetable: TimetableBase,
+    db: Session = Depends(get_db)
+):
+    """Update an existing timetable."""
+    updated = crud_update_timetable(db, timetable_id, timetable.model_dump())
+    if updated is None:
+        raise HTTPException(status_code=404, detail="Timetable not found")
+    return updated
+
+
+@router.delete("/{timetable_id}/")
+def delete_timetable(timetable_id: int, db: Session = Depends(get_db)):
+    """Delete a timetable by ID."""
+    if not crud_delete_timetable(db, timetable_id):
+        raise HTTPException(status_code=404, detail="Timetable not found")
+    return {"detail": "Timetable deleted"}
+
+
+@router.get("/daily/", response_model=List[TimeSlot])
+def get_daily_schedule(
+    user_id: int,
+    date: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """Get today's (or specified date's) time slots for a user."""
+    target_date = datetime.fromisoformat(date) if date else datetime.utcnow()
+    return crud_get_daily_schedule(db, user_id, target_date)
+
+
+@router.get("/weekly/", response_model=List[TimeSlot])
+def get_weekly_schedule(
+    user_id: int,
+    start_date: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """Get the weekly schedule starting from today (or a given date)."""
+    target_start = datetime.fromisoformat(start_date) if start_date else datetime.utcnow()
+    return crud_get_weekly_schedule(db, user_id, target_start)
+
+
+@router.post("/slots/", response_model=TimeSlot)
+def add_time_slot(
+    slot: TimeSlotCreate,
+    timetable_id: int,
+    db: Session = Depends(get_db)
+):
+    """Add a new time slot to a timetable."""
+    return crud_create_slot(db, slot, timetable_id)
+
+
+@router.put("/slots/{slot_id}/", response_model=TimeSlot)
+def update_time_slot(
+    slot_id: int,
+    slot: TimeSlotBase,
+    db: Session = Depends(get_db)
+):
+    """Update an existing time slot."""
+    updated = crud_update_slot(db, slot_id, slot.model_dump())
+    if updated is None:
+        raise HTTPException(status_code=404, detail="Time slot not found")
+    return updated
+
+
+@router.delete("/slots/{slot_id}/")
+def delete_time_slot(slot_id: int, db: Session = Depends(get_db)):
+    """Delete a time slot by ID."""
+    if not crud_delete_slot(db, slot_id):
+        raise HTTPException(status_code=404, detail="Time slot not found")
+    return {"detail": "Time slot deleted"}
