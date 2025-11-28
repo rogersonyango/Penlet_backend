@@ -38,32 +38,32 @@ def delete_timetable(db: Session, timetable_id: int):
         db.commit()
     return db_timetable
 
-# # Slot-related CRUD
-# def create_slot(db: Session, slot: schemas.TimeSlotCreate, timetable_id: int):
-#     db_slot = models.TimeSlot(**slot.model_dump(), timetable_id=timetable_id)
-#     db.add(db_slot)
-#     db.commit()
-#     db.refresh(db_slot)
-#     return db_slot
+# Slot-related CRUD
+def create_slot(db: Session, slot: schemas.TimeSlotCreate, timetable_id: int):
+    db_slot = models.TimeSlot(**slot.model_dump(), timetable_id=timetable_id)
+    db.add(db_slot)
+    db.commit()
+    db.refresh(db_slot)
+    return db_slot
 
-# def get_slot(db: Session, slot_id: int):
-#     return db.query(models.TimeSlot).filter(models.TimeSlot.id == slot_id).first()
+def get_slot(db: Session, slot_id: int):
+    return db.query(models.TimeSlot).filter(models.TimeSlot.id == slot_id).first()
 
-# def update_slot(db: Session, slot_id: int, slot_data: dict):
-#     db_slot = get_slot(db, slot_id)
-#     if db_slot:
-#         for key, value in slot_data.items():
-#             setattr(db_slot, key, value)
-#         db.commit()
-#         db.refresh(db_slot)
-#     return db_slot
+def update_slot(db: Session, slot_id: int, slot_data: dict):
+    db_slot = get_slot(db, slot_id)
+    if db_slot:
+        for key, value in slot_data.items():
+            setattr(db_slot, key, value)
+        db.commit()
+        db.refresh(db_slot)
+    return db_slot
 
-# def delete_slot(db: Session, slot_id: int):
-#     db_slot = get_slot(db, slot_id)
-#     if db_slot:
-#         db.delete(db_slot)
-#         db.commit()
-#     return db_slot
+def delete_slot(db: Session, slot_id: int):
+    db_slot = get_slot(db, slot_id)
+    if db_slot:
+        db.delete(db_slot)
+        db.commit()
+    return db_slot
 
 # Daily/Weekly helpers
 def get_daily_schedule(db: Session, user_id: int, date: datetime):

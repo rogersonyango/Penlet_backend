@@ -36,7 +36,7 @@ from app.crud.timetable import (
 
 from app.db.session import get_db
 
-router = APIRouter(prefix="/api/timetable", tags=["Timetable"])
+router = APIRouter()
 
 
 @router.get("/", response_model=List[Timetable])
