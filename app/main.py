@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.v1.endpoints import auth, subjects, videos  # videos must be here
+from app.api.v1.endpoints import auth, subjects, videos, search  # videos must be here
 from app.models import user, subject, video  # video model must be here
 from app.api.v1.endpoints import auth, note
 from app.models import user
@@ -29,7 +29,7 @@ app.include_router(alarms.router, prefix="/api/alarms", tags=["alarms"])
 app.include_router(quizzes.router, prefix="/api/quizzes", tags=["quizzes"])
 app.include_router(reminder.router, prefix="/api/reminders", tags=["reminders"])
 app.include_router(timetable.router, prefix="/api/timetable", tags=["timetable"])
-
+app.include_router(search.router, prefix="/api/v1")
 
 
 
