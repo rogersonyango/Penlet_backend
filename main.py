@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1.endpoints import auth, note
 from app.models import user
 from app.db.session import Base, engine
-from app.api.v1.endpoints import timetable, alarms,reminder
+from app.api.v1.endpoints import timetable, alarms,reminder, quizzes
 
 # Creates database tables
 Base.metadata.create_all(bind=engine)
@@ -22,6 +22,7 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(note.router, prefix="/api/notes", tags=["notes"])
 app.include_router(alarms.router, prefix="/api/alarms", tags=["alarms"])
+app.include_router(quizzes.router, prefix="/api/quizzes", tags=["quizzes"])
 app.include_router(reminder.router, prefix="/api/reminders", tags=["reminders"])
 app.include_router(timetable.router, prefix="/api/timetable", tags=["timetable"])
 
