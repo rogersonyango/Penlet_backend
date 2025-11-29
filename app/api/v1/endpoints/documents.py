@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import Optional, List
 from app.db.session import get_db
-from app.schemas.scanned_document import (
+from app.schemas.document import (
     ScannedDocumentCreate,
     ScannedDocumentUpdate,
     ScannedDocumentResponse,
@@ -16,7 +16,7 @@ from app.schemas.scanned_document import (
     ScanSessionResponse,
     ScanStatistics
 )
-from app.crud import scanned_document as scan_crud
+from app.crud import document as scan_crud
 
 router = APIRouter(prefix="/scanner", tags=["scanner"])
 
