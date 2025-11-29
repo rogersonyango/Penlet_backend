@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.v1.endpoints import auth, note, subjects, videos, search, analytics, documents, games, notifications, reports,  search, subjects, timetable, alarms,reminder, quizzes  # videos must be here
+from app.api.v1.endpoints import auth, note, subjects, videos, search, analytics, documents, games, notifications, reports,  search, subjects, timetable, alarms,reminder, quizzes, resource, chatbot  # videos must be here
 from app.models import user, subject, video, analytics, document, game, notification, report, subject  # video model must be here
 from app.db.session import Base, engine
 
@@ -25,7 +25,9 @@ app.include_router(reports.router, prefix="/api/v1")
 app.include_router(notifications.router, prefix="/api/v1")
 app.include_router(documents.router, prefix="/api/v1")
 app.include_router(videos.router, prefix="/api/v1")  # This line must be here
+app.include_router(chatbot.router, prefix="/api/chatbot", tags=["chatbot"])
 app.include_router(note.router, prefix="/api/notes", tags=["notes"])
+app.include_router(resource.router, prefix="/api/resource", tags=["resource"])
 app.include_router(alarms.router, prefix="/api/alarms", tags=["alarms"])
 app.include_router(quizzes.router, prefix="/api/quizzes", tags=["quizzes"])
 app.include_router(reminder.router, prefix="/api/reminders", tags=["reminders"])
