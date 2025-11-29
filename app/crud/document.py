@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, func, desc, or_
-from app.models.scanned_document import ScannedDocument, ScanSession, DocumentType, ProcessingStatus
-from app.schemas.scanned_document import ScannedDocumentCreate, ScannedDocumentUpdate
+from app.models.document import ScannedDocument, ScanSession, DocumentType, ProcessingStatus
+from app.schemas.document import ScannedDocumentCreate, ScannedDocumentUpdate
 from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Any
 import time

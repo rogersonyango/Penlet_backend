@@ -1,5 +1,5 @@
 from sqlalchemy import Column, String, Integer, Float, DateTime, Text, Boolean, JSON, Date, Enum as SQLEnum
-from sqlalchemy.sql import func
+from sqlalchemy.sql import func, text
 from app.db.session import Base
 import uuid
 import enum
@@ -58,8 +58,8 @@ class AnalyticsEvent(Base):
     
     # Timestamps
     event_date = Column(Date, nullable=False, index=True)
-    event_timestamp = Column(DateTime(timezone=True), server_default=func.now(), index=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    event_timestamp = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'), index=True)
+    created_at = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'))
 
     def __repr__(self):
         return f"<AnalyticsEvent(id={self.id}, type={self.event_type}, user={self.user_id})>"
@@ -95,8 +95,8 @@ class DailyMetric(Base):
     streak_count = Column(Integer, default=0)
     
     # Timestamps
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    created_at = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'))
+    updated_at = Column(DateTime(timezone=True), onupdate=text('CURRENT_TIMESTAMP'))
 
     def __repr__(self):
         return f"<DailyMetric(user={self.user_id}, date={self.metric_date}, time={self.total_study_time})>"
@@ -135,8 +135,8 @@ class SubjectAnalytics(Base):
     sessions_count = Column(Integer, default=0)
     
     # Timestamps
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    created_at = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'))
+    updated_at = Column(DateTime(timezone=True), onupdate=text('CURRENT_TIMESTAMP'))
 
     def __repr__(self):
         return f"<SubjectAnalytics(user={self.user_id}, subject={self.subject_name})>"
@@ -173,8 +173,8 @@ class StudyGoal(Base):
     
     # Timestamps
     completed_at = Column(DateTime(timezone=True))
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    created_at = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'))
+    updated_at = Column(DateTime(timezone=True), onupdate=text('CURRENT_TIMESTAMP'))
 
     def __repr__(self):
         return f"<StudyGoal(id={self.id}, title={self.title}, progress={self.completion_percentage}%)>"
