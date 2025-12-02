@@ -16,7 +16,7 @@ class Resource(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, index=True)
     description = Column(Text, nullable=True)
-    file_path = Column(String)  # Path to .glb, .gltf, or .obj file
+    file_path = Column(String)  # Path to .glb, .gltf, or .obj 
     file_format = Column(String)  # e.g., "glb", "gltf", "obj"
     subject = Column(String, index=True)
     category_id = Column(Integer, ForeignKey("resource_categories.id"))
