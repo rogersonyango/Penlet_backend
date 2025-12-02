@@ -5,7 +5,7 @@ from app.models import user, subject, video
 from app.api.v1.endpoints import auth, note
 from app.models import user
 from app.db.session import Base, engine
-from app.api.v1.endpoints import timetable, alarms,reminder, quizzes, resource, system
+from app.api.v1.endpoints import timetable, alarms,reminder, quizzes, resource, system, flashcards
 
 Base.metadata.create_all(bind=engine)
 
@@ -24,6 +24,7 @@ app.include_router(subjects.router, prefix="/api/v1")
 app.include_router(videos.router, prefix="/api/v1")  
 app.include_router(note.router, prefix="/api/notes", tags=["notes"])
 app.include_router(resource.router, prefix="/api/resource", tags=["resource"])
+app.include_router(flashcards.router, prefix="/api/flashcards", tags=["flashcards"])
 app.include_router(alarms.router, prefix="/api/alarms", tags=["alarms"])
 app.include_router(system.router, prefix="/api/system", tags=["system"])
 app.include_router(quizzes.router, prefix="/api/quizzes", tags=["quizzes"])
