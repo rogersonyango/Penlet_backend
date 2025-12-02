@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.v1.endpoints import auth, note, subjects, videos, search, analytics, documents, games, notifications, reports,  search, subjects, timetable, alarms,reminder, quizzes, resource, chatbot  # videos must be here
+from app.api.v1.endpoints import note, subjects, users, videos, search, analytics, documents, games, notifications, reports,  search, subjects, timetable, alarms,reminder, quizzes, resource, chatbot  # videos must be here
 from app.models import user, subject, video, analytics, document, game, notification, report, subject  # video model must be here
 from app.db.session import Base, engine
 
@@ -18,7 +18,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(auth.router, prefix="/api/v1")
+app.include_router(users.router, prefix="/api/v1")
 app.include_router(subjects.router, prefix="/api/v1")
 app.include_router(games.router, prefix="/api/v1")
 app.include_router(reports.router, prefix="/api/v1")
