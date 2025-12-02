@@ -5,6 +5,7 @@ from app.models import user, subject, video
 from app.api.v1.endpoints import auth, note
 from app.models import user
 from app.db.session import Base, engine
+from app.api.v1.endpoints import timetable, alarms,reminder, quizzes, resource, system
 from app.api.v1.endpoints import timetable, alarms,reminder, quizzes, resource, system, flashcards
 from app.api.v1.endpoints import note, subjects, users, videos, search, analytics, documents, games, notifications, reports,  search, subjects, timetable, alarms,reminder, quizzes, resource, chatbot  # videos must be here
 from app.models import user, subject, video, analytics, document, game, notification, report, subject  # video model must be here
