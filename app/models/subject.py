@@ -6,21 +6,28 @@ from app.db.session import Base
 def generate_uuid():
     return str(uuid.uuid4())
 
+# Valid class levels
+VALID_CLASSES = ["S1", "S2", "S3", "S4", "S5", "S6"]
+
 class Subject(Base):
     __tablename__ = "subjects"
     
     id = Column(String, primary_key=True, default=generate_uuid)
     name = Column(String(100), nullable=False)
-    code = Column(String(20), unique=True, nullable=False)  # e.g., "MATH101", "PHY201"
+    code = Column(String(20), unique=True, nullable=False)  # e.g., "MATH-S1", "PHY-S3"
     description = Column(Text)
     color = Column(String(20), default="#6366f1")  # Hex color for UI
     icon = Column(String(50), default="BookOpen")  # Lucide icon name
-    user_id = Column(String, nullable=False)  # Owner of the subject
+    
+    # Class level - which class this subject is for
+    class_level = Column(String(10), nullable=False)  # S1, S2, S3, S4, S5, S6
+    
+    # Teacher assignment
+    teacher_id = Column(String, nullable=True)  # Assigned teacher
+    teacher_name = Column(String(100))
     
     # Academic details
-    grade_level = Column(String(50))  # e.g., "S1", "S2", "A-Level"
-    term = Column(String(20))  # e.g., "Term 1", "Term 2"
-    teacher_name = Column(String(100))
+    term = Column(String(20))  # e.g., "Term 1", "Term 2", "Term 3"
     
     # Statistics
     notes_count = Column(Integer, default=0)
@@ -29,7 +36,6 @@ class Subject(Base):
     
     # Settings
     is_active = Column(Boolean, default=True)
-    is_favorite = Column(Boolean, default=False)
     
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)

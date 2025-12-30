@@ -3,7 +3,12 @@
 from pydantic import BaseModel, EmailStr, computed_field
 from typing import Optional, List
 from enum import Enum
+from pydantic import BaseModel, EmailStr, field_validator
 from datetime import datetime
+from typing import Optional, List
+
+# Valid class levels for students
+VALID_CLASSES = ["S1", "S2", "S3", "S4", "S5", "S6"]
 
 class UserRole(str, Enum):
     ADMIN = "admin"
@@ -13,62 +18,54 @@ class UserRole(str, Enum):
 # Input schemas
 class UserBase(BaseModel):
     email: EmailStr
-    first_name: str
-    last_name: str
-
-class UserCreate(UserBase):
-    password: Optional[str] = None
-    role: UserRole
-    user_class: Optional[str] = None   # for students
-    subject: Optional[str] = None      # for teachers
-
-class UserCreateByAdmin(BaseModel):
-    email: EmailStr
-    first_name: str
-    last_name: str
-    user_class: Optional[str] = None
-    subject: Optional[str] = None
+    username: str
+    password: str
+    full_name: str = None
+    user_type: str = "student"
+    student_class: Optional[str] = None  # Required for students, null for teachers/admins
+    
+    @field_validator('student_class')
+    @classmethod
+    def validate_student_class(cls, v, info):
+        """Validate student_class field"""
+        # Get user_type from the data being validated
+        user_type = info.data.get('user_type', 'student') if info.data else 'student'
+        if user_type == 'student':
+            if not v:
+                raise ValueError('Student class is required for students')
+            if v not in VALID_CLASSES:
+                raise ValueError(f'Invalid class. Must be one of: {", ".join(VALID_CLASSES)}')
+        return v
 
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
 
-class OTPVerify(BaseModel):
-    email: EmailStr
-    otp: str
-
-class PasswordResetRequest(BaseModel):
-    email: EmailStr
-
-class PasswordResetConfirm(BaseModel):
-    token: str
-    new_password: str
-
 class UserUpdate(BaseModel):
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
-    user_class: Optional[str] = None
-    subject: Optional[str] = None
-
-class TokenRefresh(BaseModel):
-    refresh_token: str
-
-# Output schemas
-class Token(BaseModel):
-    access_token: str
-    refresh_token: str
-    token_type: str = "bearer"
+    full_name: Optional[str] = None
+    username: Optional[str] = None
+    email: Optional[EmailStr] = None
+    student_class: Optional[str] = None
+    profile_image: Optional[str] = None
+    
+    @field_validator('student_class')
+    @classmethod
+    def validate_student_class(cls, v):
+        """Validate student_class field"""
+        if v and v not in VALID_CLASSES:
+            raise ValueError(f'Invalid class. Must be one of: {", ".join(VALID_CLASSES)}')
+        return v
 
 class UserResponse(BaseModel):
-    id: str  # UUID as string
-    email: EmailStr
-    first_name: str
-    last_name: str
-    role: UserRole
-    is_verified: bool
-    user_class: Optional[str] = None
-    subject: Optional[str] = None
-    # Optional: include security fields if needed (not recommended in public API)
+    id: str
+    email: str
+    username: str
+    full_name: str = None
+    user_type: str
+    student_class: Optional[str] = None
+    profile_image: Optional[str] = None
+    is_active: bool
+    created_at: datetime
     
     @computed_field
     @property
