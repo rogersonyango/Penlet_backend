@@ -29,7 +29,8 @@ app.include_router(alarms.router, prefix="/api/alarms", tags=["alarms"])
 app.include_router(system.router, prefix="/api/system", tags=["system"])
 app.include_router(quizzes.router, prefix="/api/quizzes", tags=["quizzes"])
 app.include_router(reminder.router, prefix="/api/reminders", tags=["reminders"])
-app.include_router(timetable.router, prefix="/api/timetable", tags=["timetable"])
+# app.include_router(timetable.router, prefix="/api/timetable", tags=["Timetable"])
+app.include_router(timetable.router, tags=["Timetable"])
 
 
 
