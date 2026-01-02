@@ -1,55 +1,78 @@
-#app/schemas/flashcard.py
-
-from pydantic import BaseModel
+# app/schemas/flashcard.py
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List
 from datetime import datetime
 
-class FlashcardCreate(BaseModel):
-    front: str
-    back: str
+class FlashcardBase(BaseModel):
+    """Base flashcard schema."""
+    front: str = Field(..., min_length=1, max_length=1000)
+    back: str = Field(..., min_length=1, max_length=1000)
+
+class FlashcardCreate(FlashcardBase):
+    """Schema for creating a flashcard."""
     deck_id: int
 
 class FlashcardUpdate(BaseModel):
-    front: Optional[str] = None
-    back: Optional[str] = None
-    next_review: Optional[datetime] = None
-    interval: Optional[int] = None
-    repetition: Optional[int] = None
-    ease_factor: Optional[float] = None
+    """Schema for updating a flashcard."""
+    front: Optional[str] = Field(None, min_length=1, max_length=1000)
+    back: Optional[str] = Field(None, min_length=1, max_length=1000)
 
-class Flashcard(FlashcardCreate):
+class FlashcardResponse(FlashcardBase):
+    """Schema for flashcard response."""
     id: int
+    deck_id: int
     next_review: datetime
-    interval: int = 0
-    repetition: int = 0
-    ease_factor: float = 2.5
+    interval: int
+    repetition: int
+    ease_factor: float
     created_at: datetime
 
     class Config:
         from_attributes = True
 
-class DeckCreate(BaseModel):
-    title: str
-    subject: Optional[str] = None
-    level: Optional[str] = None
+class DeckBase(BaseModel):
+    """Base deck schema."""
+    title: str = Field(..., min_length=1, max_length=200)
+    subject: Optional[str] = Field(None, max_length=100)
+    level: Optional[str] = Field(None, max_length=50)
     is_public: bool = False
 
-class Deck(DeckCreate):
+class DeckCreate(DeckBase):
+    """Schema for creating a deck."""
+    pass
+
+class DeckUpdate(BaseModel):
+    """Schema for updating a deck."""
+    title: Optional[str] = Field(None, min_length=1, max_length=200)
+    subject: Optional[str] = Field(None, max_length=100)
+    level: Optional[str] = Field(None, max_length=50)
+    is_public: Optional[bool] = None
+
+class DeckResponse(DeckBase):
+    """Schema for deck response."""
     id: int
-    card_count: int = 0
+    share_token: Optional[str]
     created_at: datetime
+    cards: List[FlashcardResponse] = []
 
     class Config:
         from_attributes = True
 
 class ReviewUpdate(BaseModel):
-    quality: int  # 0–5 rating (SM-2 algorithm)
+    """Schema for updating flashcard review."""
+    quality: int = Field(..., ge=0, le=5, description="Quality rating (0-5) for SM-2 algorithm")
 
-class StudySession(BaseModel):
+class StudySessionResponse(BaseModel):
+    """Schema for study session response."""
     deck_id: int
-    cards: List[Flashcard]
+    cards_due: List[FlashcardResponse]
+    total_cards: int
 
-class StudyStats(BaseModel):
+class StudyStatsResponse(BaseModel):
+    """Schema for study statistics."""
+    deck_id: int
     total_cards: int
     cards_due: int
-    mastery_level: float  # e.g., avg ease_factor
+    cards_learning: int
+    cards_mastered: int
+    average_ease_factor: float

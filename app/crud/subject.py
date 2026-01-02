@@ -1,98 +1,63 @@
+# app/crud/subject.py
 from sqlalchemy.orm import Session
 from sqlalchemy import func, or_
+from sqlalchemy.exc import IntegrityError
 from app.models.subject import Subject
-from app.schemas.subject import SubjectCreate, SubjectUpdate, VALID_CLASSES
+from app.schemas.subject import SubjectCreate, SubjectUpdate
 from typing import Optional, Tuple, List
 
-def create_subject(db: Session, subject: SubjectCreate, created_by: str = None) -> Subject:
-    """Create a new subject (admin only)"""
-    db_subject = Subject(
-        name=subject.name,
-        code=subject.code,
-        description=subject.description,
-        color=subject.color,
-        icon=subject.icon,
-        class_level=subject.class_level,
-        term=subject.term,
-        teacher_name=subject.teacher_name,
-        teacher_id=subject.teacher_id
-    )
-    db.add(db_subject)
-    db.commit()
-    db.refresh(db_subject)
-    return db_subject
-
-def get_subject(db: Session, subject_id: str) -> Optional[Subject]:
-    """Get a single subject by ID"""
-    return db.query(Subject).filter(Subject.id == subject_id).first()
-
-def get_subject_by_code(db: Session, code: str) -> Optional[Subject]:
-    """Get a subject by its code"""
-    return db.query(Subject).filter(Subject.code == code).first()
-
-def get_subjects_by_class(
-    db: Session,
-    class_level: str,
-    skip: int = 0,
-    limit: int = 100,
-    search: Optional[str] = None,
-    term: Optional[str] = None,
-    is_active: Optional[bool] = True
-) -> Tuple[List[Subject], int]:
-    """Get subjects for a specific class (for students)"""
-    query = db.query(Subject).filter(Subject.class_level == class_level)
-    
-    if is_active is not None:
-        query = query.filter(Subject.is_active == is_active)
-    
-    if search:
-        search_term = f"%{search}%"
-        query = query.filter(
-            or_(
-                Subject.name.ilike(search_term),
-                Subject.code.ilike(search_term),
-                Subject.description.ilike(search_term)
-            )
+def create_subject(db: Session, subject: SubjectCreate, user_id: str) -> Optional[Subject]:
+    """Create a new subject."""
+    try:
+        db_subject = Subject(
+            name=subject.name,
+            code=subject.code,
+            description=subject.description,
+            color=subject.color,
+            icon=subject.icon,
+            user_id=user_id,
+            grade_level=subject.grade_level,
+            term=subject.term,
+            teacher_name=subject.teacher_name,
+            is_favorite=subject.is_favorite
         )
-    
-    if term:
-        query = query.filter(Subject.term == term)
-    
-    total = query.count()
-    subjects = query.order_by(Subject.name.asc()).offset(skip).limit(limit).all()
-    
-    return subjects, total
+        db.add(db_subject)
+        db.commit()
+        db.refresh(db_subject)
+        return db_subject
+    except IntegrityError:
+        db.rollback()
+        return None
 
-def get_subjects_by_teacher(
-    db: Session,
-    teacher_id: str,
-    skip: int = 0,
-    limit: int = 100,
-    class_level: Optional[str] = None
-) -> Tuple[List[Subject], int]:
-    """Get subjects assigned to a specific teacher"""
-    query = db.query(Subject).filter(Subject.teacher_id == teacher_id)
-    
-    if class_level:
-        query = query.filter(Subject.class_level == class_level)
-    
-    total = query.count()
-    subjects = query.order_by(Subject.class_level.asc(), Subject.name.asc()).offset(skip).limit(limit).all()
-    
-    return subjects, total
+def get_subject(db: Session, subject_id: str, user_id: str) -> Optional[Subject]:
+    """Get a single subject by ID."""
+    return db.query(Subject).filter(
+        Subject.id == subject_id,
+        Subject.user_id == user_id
+    ).first()
 
-def get_all_subjects(
+def get_subject_by_code(db: Session, code: str, user_id: str) -> Optional[Subject]:
+    """Get a subject by its code."""
+    return db.query(Subject).filter(
+        Subject.code == code,
+        Subject.user_id == user_id
+    ).first()
+
+def get_user_subjects(
     db: Session,
+    user_id: str,
     skip: int = 0,
     limit: int = 100,
     search: Optional[str] = None,
-    class_level: Optional[str] = None,
+    grade_level: Optional[str] = None,
     term: Optional[str] = None,
+    is_favorite: Optional[bool] = None,
     is_active: Optional[bool] = None
 ) -> Tuple[List[Subject], int]:
-    """Get all subjects with filters (for admins)"""
-    query = db.query(Subject)
+    """Get user's subjects with filters and pagination."""
+    query = db.query(Subject).filter(Subject.user_id == user_id)
     
+    # Apply filters
     if search:
         search_term = f"%{search}%"
         query = query.filter(
@@ -104,63 +69,62 @@ def get_all_subjects(
             )
         )
     
-    if class_level:
-        query = query.filter(Subject.class_level == class_level)
+    if grade_level:
+        query = query.filter(Subject.grade_level == grade_level)
     
     if term:
         query = query.filter(Subject.term == term)
     
+    if is_favorite is not None:
+        query = query.filter(Subject.is_favorite == is_favorite)
+    
     if is_active is not None:
         query = query.filter(Subject.is_active == is_active)
     
+    # Get total count
     total = query.count()
+    
+    # Get paginated results
     subjects = query.order_by(
-        Subject.class_level.asc(),
+        Subject.is_favorite.desc(),
         Subject.name.asc()
     ).offset(skip).limit(limit).all()
     
     return subjects, total
 
-def get_active_subjects_for_class(db: Session, class_level: str) -> List[Subject]:
-    """Get all active subjects for a specific class (for dropdowns, etc.)"""
+def get_active_subjects(db: Session, user_id: str) -> List[Subject]:
+    """Get all active subjects for a user."""
     return db.query(Subject).filter(
-        Subject.class_level == class_level,
+        Subject.user_id == user_id,
         Subject.is_active == True
     ).order_by(Subject.name.asc()).all()
-
-def get_active_subjects(db: Session, class_level: Optional[str] = None) -> List[Subject]:
-    """Get all active subjects, optionally filtered by class"""
-    query = db.query(Subject).filter(Subject.is_active == True)
-    
-    if class_level:
-        query = query.filter(Subject.class_level == class_level)
-    
-    return query.order_by(Subject.class_level.asc(), Subject.name.asc()).all()
 
 def update_subject(
     db: Session,
     subject_id: str,
-    subject_update: SubjectUpdate
+    subject_update: SubjectUpdate,
+    user_id: str
 ) -> Optional[Subject]:
-    """Update a subject"""
-    db_subject = get_subject(db, subject_id)
-    
+    """Update a subject."""
+    db_subject = get_subject(db, subject_id, user_id)
     if not db_subject:
         return None
     
-    # Update only provided fields
     update_data = subject_update.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(db_subject, field, value)
     
-    db.commit()
-    db.refresh(db_subject)
-    return db_subject
+    try:
+        db.commit()
+        db.refresh(db_subject)
+        return db_subject
+    except IntegrityError:
+        db.rollback()
+        return None
 
-def delete_subject(db: Session, subject_id: str) -> bool:
-    """Delete a subject"""
-    db_subject = get_subject(db, subject_id)
-    
+def delete_subject(db: Session, subject_id: str, user_id: str) -> bool:
+    """Delete a subject."""
+    db_subject = get_subject(db, subject_id, user_id)
     if not db_subject:
         return False
     
@@ -168,60 +132,67 @@ def delete_subject(db: Session, subject_id: str) -> bool:
     db.commit()
     return True
 
-def assign_teacher(db: Session, subject_id: str, teacher_id: str, teacher_name: str) -> Optional[Subject]:
-    """Assign a teacher to a subject"""
-    db_subject = get_subject(db, subject_id)
-    
+def toggle_favorite(db: Session, subject_id: str, user_id: str) -> Optional[Subject]:
+    """Toggle favorite status of a subject."""
+    db_subject = get_subject(db, subject_id, user_id)
     if not db_subject:
         return None
     
-    db_subject.teacher_id = teacher_id
-    db_subject.teacher_name = teacher_name
+    db_subject.is_favorite = not db_subject.is_favorite
     db.commit()
     db.refresh(db_subject)
     return db_subject
 
-def update_subject_counts(db: Session, subject_id: str) -> Optional[Subject]:
-    """
-    Update the counts for notes, quizzes, and videos.
-    """
+def increment_notes_count(db: Session, subject_id: str) -> Optional[Subject]:
+    """Increment notes count for a subject."""
     db_subject = db.query(Subject).filter(Subject.id == subject_id).first()
-    
-    if not db_subject:
-        return None
-    
-    # TODO: Implement actual counting from Content table
-    # notes_count = db.query(func.count(Content.id)).filter(
-    #     Content.subject_id == subject_id,
-    #     Content.type == 'note'
-    # ).scalar()
-    # db_subject.notes_count = notes_count
-    
-    db.commit()
-    db.refresh(db_subject)
+    if db_subject:
+        db_subject.notes_count += 1
+        db.commit()
+        db.refresh(db_subject)
     return db_subject
 
-def get_subjects_with_stats(db: Session, class_level: Optional[str] = None) -> List[dict]:
-    """Get subjects with aggregated statistics"""
-    query = db.query(Subject).filter(Subject.is_active == True)
-    
-    if class_level:
-        query = query.filter(Subject.class_level == class_level)
-    
-    subjects = query.order_by(Subject.class_level.asc(), Subject.name.asc()).all()
-    
-    result = []
-    for subject in subjects:
-        result.append({
-            "subject_id": subject.id,
-            "subject_name": subject.name,
-            "subject_code": subject.code,
-            "class_level": subject.class_level,
-            "color": subject.color,
-            "total_notes": subject.notes_count,
-            "total_quizzes": subject.quizzes_count,
-            "total_videos": subject.videos_count,
-            "teacher_name": subject.teacher_name
-        })
-    
-    return result
+def decrement_notes_count(db: Session, subject_id: str) -> Optional[Subject]:
+    """Decrement notes count for a subject."""
+    db_subject = db.query(Subject).filter(Subject.id == subject_id).first()
+    if db_subject and db_subject.notes_count > 0:
+        db_subject.notes_count -= 1
+        db.commit()
+        db.refresh(db_subject)
+    return db_subject
+
+def increment_quizzes_count(db: Session, subject_id: str) -> Optional[Subject]:
+    """Increment quizzes count for a subject."""
+    db_subject = db.query(Subject).filter(Subject.id == subject_id).first()
+    if db_subject:
+        db_subject.quizzes_count += 1
+        db.commit()
+        db.refresh(db_subject)
+    return db_subject
+
+def decrement_quizzes_count(db: Session, subject_id: str) -> Optional[Subject]:
+    """Decrement quizzes count for a subject."""
+    db_subject = db.query(Subject).filter(Subject.id == subject_id).first()
+    if db_subject and db_subject.quizzes_count > 0:
+        db_subject.quizzes_count -= 1
+        db.commit()
+        db.refresh(db_subject)
+    return db_subject
+
+def increment_videos_count(db: Session, subject_id: str) -> Optional[Subject]:
+    """Increment videos count for a subject."""
+    db_subject = db.query(Subject).filter(Subject.id == subject_id).first()
+    if db_subject:
+        db_subject.videos_count += 1
+        db.commit()
+        db.refresh(db_subject)
+    return db_subject
+
+def decrement_videos_count(db: Session, subject_id: str) -> Optional[Subject]:
+    """Decrement videos count for a subject."""
+    db_subject = db.query(Subject).filter(Subject.id == subject_id).first()
+    if db_subject and db_subject.videos_count > 0:
+        db_subject.videos_count -= 1
+        db.commit()
+        db.refresh(db_subject)
+    return db_subject

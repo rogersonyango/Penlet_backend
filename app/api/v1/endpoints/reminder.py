@@ -2,112 +2,190 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
-# from fastapi.security import OAuth2PasswordBearer
-# from jose import JWTError, jwt
+from datetime import datetime
 
-from app.schemas.reminder import Reminder, ReminderCreate, ReminderUpdate
-from app import crud
+from app.api.deps import get_current_user
 from app.db.session import get_db
+from app.models.user import User
+from app.schemas.reminder import ReminderCreate, ReminderUpdate, ReminderResponse
+from app.crud import reminder as crud_reminder
 
 router = APIRouter()
 
-def get_current_user_id() -> int:
-    return 1
-
-
-# oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-# SECRET_KEY = "your-secret-key"
-# ALGORITHM = "HS256"
-
-
-# def get_current_user_id(
-#     token: str = Depends(oauth2_scheme),
-#     db: Session = Depends(get_db)
-# ) -> int:
-#     """Decode JWT token and return user ID."""
-#     credentials_exception = HTTPException(
-#         status_code=status.HTTP_401_UNAUTHORIZED,
-#         detail="Could not validate credentials",
-#         headers={"WWW-Authenticate": "Bearer"},
-#     )
-#     try:
-#         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-#         user_id: str = payload.get("sub")
-#         if user_id is None:
-#             raise credentials_exception
-#         return int(user_id)
-#     except JWTError:
-#         raise credentials_exception
-
-@router.get("/", response_model=List[Reminder])
+@router.get("/", response_model=List[ReminderResponse])
 def read_reminders(
-    completed: Optional[bool] = Query(None),
-    skip: int = 0,
-    limit: int = 100,
+    completed: Optional[bool] = Query(None, description="Filter by completion status"),
+    search: Optional[str] = Query(None, description="Search in title/description"),
+    due_before: Optional[datetime] = Query(None, description="Filter by due date before"),
+    due_after: Optional[datetime] = Query(None, description="Filter by due date after"),
+    skip: int = Query(0, ge=0, description="Number of records to skip"),
+    limit: int = Query(100, ge=1, le=1000, description="Maximum number of records"),
     db: Session = Depends(get_db),
-    user_id: int = Depends(get_current_user_id)
-):
-    reminders = crud.reminder.get_reminders(db, user_id, skip=skip, limit=limit, completed=completed)
+    current_user: User = Depends(get_current_user)
+) -> List[ReminderResponse]:
+    """
+    Retrieve user's reminders with optional filtering.
+    """
+    reminders = crud_reminder.get_reminders(
+        db=db,
+        user_id=current_user.id,
+        skip=skip,
+        limit=limit,
+        completed=completed,
+        search=search,
+        due_before=due_before,
+        due_after=due_after
+    )
     return reminders
 
-@router.post("/", response_model=Reminder)
+@router.post("/", response_model=ReminderResponse, status_code=status.HTTP_201_CREATED)
 def create_reminder(
     reminder: ReminderCreate,
     db: Session = Depends(get_db),
-    user_id: int = Depends(get_current_user_id)
-):
-    return crud.reminder.create_reminder(db=db, reminder=reminder, user_id=user_id)
+    current_user: User = Depends(get_current_user)
+) -> ReminderResponse:
+    """
+    Create a new reminder.
+    """
+    return crud_reminder.create_reminder(db=db, reminder=reminder, user_id=current_user.id)
 
-@router.get("/{reminderId}", response_model=Reminder)
+@router.get("/{reminder_id}", response_model=ReminderResponse)
 def read_reminder(
-    reminderId: int,
+    reminder_id: int,
     db: Session = Depends(get_db),
-    user_id: int = Depends(get_current_user_id)
-):
-    db_reminder = crud.reminder.get_reminder(db, reminderId, user_id)
-    if not db_reminder:
-        raise HTTPException(status_code=404, detail="Reminder not found")
-    return db_reminder
+    current_user: User = Depends(get_current_user)
+) -> ReminderResponse:
+    """
+    Retrieve a specific reminder by ID.
+    """
+    reminder = crud_reminder.get_reminder(db, reminder_id, current_user.id)
+    if not reminder:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Reminder not found"
+        )
+    return reminder
 
-@router.put("/{reminderId}", response_model=Reminder)
+@router.put("/{reminder_id}", response_model=ReminderResponse)
 def update_reminder(
-    reminderId: int,
-    reminder: ReminderUpdate,
+    reminder_id: int,
+    reminder_update: ReminderUpdate,
     db: Session = Depends(get_db),
-    user_id: int = Depends(get_current_user_id)
-):
-    db_reminder = crud.reminder.update_reminder(db, reminderId, reminder, user_id)
-    if not db_reminder:
-        raise HTTPException(status_code=404, detail="Reminder not found")
-    return db_reminder
+    current_user: User = Depends(get_current_user)
+) -> ReminderResponse:
+    """
+    Update an existing reminder.
+    """
+    reminder = crud_reminder.update_reminder(
+        db=db,
+        reminder_id=reminder_id,
+        reminder_update=reminder_update,
+        user_id=current_user.id
+    )
+    if not reminder:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Reminder not found"
+        )
+    return reminder
 
-@router.delete("/{reminderId}")
+@router.delete("/{reminder_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_reminder(
-    reminderId: int,
+    reminder_id: int,
     db: Session = Depends(get_db),
-    user_id: int = Depends(get_current_user_id)
-):
-    success = crud.reminder.delete_reminder(db, reminderId, user_id)
+    current_user: User = Depends(get_current_user)
+) -> None:
+    """
+    Delete a reminder.
+    """
+    success = crud_reminder.delete_reminder(db, reminder_id, current_user.id)
     if not success:
-        raise HTTPException(status_code=404, detail="Reminder not found")
-    return {"detail": "Reminder deleted"}
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Reminder not found"
+        )
 
-@router.post("/{reminderId}/complete", response_model=Reminder)
+@router.post("/{reminder_id}/complete", response_model=ReminderResponse)
 def complete_reminder(
-    reminderId: int,
+    reminder_id: int,
     db: Session = Depends(get_db),
-    user_id: int = Depends(get_current_user_id)
-):
-    db_reminder = crud.reminder.complete_reminder(db, reminderId, user_id)
-    if not db_reminder:
-        raise HTTPException(status_code=400, detail="Reminder not found or already completed")
-    return db_reminder
+    current_user: User = Depends(get_current_user)
+) -> ReminderResponse:
+    """
+    Mark a reminder as completed.
+    """
+    reminder = crud_reminder.complete_reminder(db, reminder_id, current_user.id)
+    if not reminder:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Reminder not found or already completed"
+        )
+    return reminder
 
-@router.get("/upcoming/", response_model=List[Reminder])
-def get_upcoming_reminders(
-    limit: int = Query(10, le=100),
+@router.post("/{reminder_id}/uncomplete", response_model=ReminderResponse)
+def uncomplete_reminder(
+    reminder_id: int,
     db: Session = Depends(get_db),
-    user_id: int = Depends(get_current_user_id)
-):
-    reminders = crud.reminder.get_upcoming_reminders(db, user_id, limit=limit)
+    current_user: User = Depends(get_current_user)
+) -> ReminderResponse:
+    """
+    Mark a reminder as not completed.
+    """
+    reminder = crud_reminder.uncomplete_reminder(db, reminder_id, current_user.id)
+    if not reminder:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Reminder not found or not completed"
+        )
+    return reminder
+
+@router.get("/upcoming/", response_model=List[ReminderResponse])
+def get_upcoming_reminders(
+    days_ahead: int = Query(7, ge=1, le=90, description="Days to look ahead"),
+    limit: int = Query(10, ge=1, le=100, description="Maximum number of reminders"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+) -> List[ReminderResponse]:
+    """
+    Get upcoming reminders within specified days.
+    """
+    reminders = crud_reminder.get_upcoming_reminders(
+        db=db,
+        user_id=current_user.id,
+        days_ahead=days_ahead,
+        limit=limit
+    )
     return reminders
+
+@router.get("/overdue/", response_model=List[ReminderResponse])
+def get_overdue_reminders(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+) -> List[ReminderResponse]:
+    """
+    Get overdue reminders.
+    """
+    reminders = crud_reminder.get_overdue_reminders(db, current_user.id)
+    return reminders
+
+@router.get("/today/", response_model=List[ReminderResponse])
+def get_todays_reminders(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+) -> List[ReminderResponse]:
+    """
+    Get reminders due today.
+    """
+    reminders = crud_reminder.get_todays_reminders(db, current_user.id)
+    return reminders
+
+@router.get("/stats/")
+def get_reminder_stats(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get reminder statistics for the user.
+    """
+    stats = crud_reminder.get_reminder_stats(db, current_user.id)
+    return stats

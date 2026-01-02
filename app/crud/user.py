@@ -1,262 +1,158 @@
-#app/crud/user.py
-
+# app/crud/user.py
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
-from datetime import datetime, timedelta
 from typing import Optional, List
-import uuid
-from app.models.user import User, UserRole, RefreshToken
+from app.models.user import User
+from app.schemas.user import UserCreate, UserUpdate
+from app.core.security import get_password_hash, verify_password
 
-from app.utils.auth import get_password_hash, verify_password, generate_otp, generate_token
-
-from app.config import settings
+def get_user(db: Session, user_id: str) -> Optional[User]:
+    """Get a user by ID"""
+    return db.query(User).filter(User.id == user_id).first()
 
 def get_user_by_email(db: Session, email: str) -> Optional[User]:
+    """Get a user by email"""
     return db.query(User).filter(User.email == email).first()
 
-def get_user_by_id(db: Session, user_id: str) -> Optional[User]:
-    return db.query(User).filter(User.id == user_id).first()
-def get_user_by_id(db: Session, user_id: str):
-    return db.query(User).filter(User.id == user_id).first()
+def get_user_by_username(db: Session, username: str) -> Optional[User]:
+    """Get a user by username"""
+    return db.query(User).filter(User.username == username).first()
 
-def create_user(db: Session, user: UserCreate):
+def get_users(
+    db: Session,
+    skip: int = 0,
+    limit: int = 100,
+    search: Optional[str] = None,
+    user_type: Optional[str] = None,
+    is_active: Optional[bool] = None
+) -> List[User]:
+    """Get users with optional filters"""
+    query = db.query(User)
+    
+    if search:
+        search_term = f"%{search}%"
+        query = query.filter(
+            or_(
+                User.email.ilike(search_term),
+                User.username.ilike(search_term),
+                User.full_name.ilike(search_term)
+            )
+        )
+    
+    if user_type:
+        query = query.filter(User.user_type == user_type)
+    
+    if is_active is not None:
+        query = query.filter(User.is_active == is_active)
+    
+    return query.order_by(User.created_at.desc()).offset(skip).limit(limit).all()
+
+def create_user(db: Session, user: UserCreate) -> User:
+    """Create a new user"""
     db_user = User(
         email=user.email,
         username=user.username,
         full_name=user.full_name,
         password_hash=get_password_hash(user.password),
-        user_type=user.user_type,
-        student_class=user.student_class if user.user_type == 'student' else None
+        user_type=user.user_type
     )
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
     return db_user
 
-def create_user(
+def update_user(
     db: Session,
-    email: str,
-    role: UserRole,
-    first_name: str,
-    last_name: str,
-    password: Optional[str] = None,
-    user_class: Optional[str] = None,
-    subject: Optional[str] = None
-) -> User:
-    if role == UserRole.STUDENT and not user_class:
-        raise ValueError("Student must have a class")
-    if role == UserRole.TEACHER and not subject:
-        raise ValueError("Teacher must have a subject")
-
-    hashed_password = get_password_hash(password) if password else None
-    user = User(
-        email=email,
-        first_name=first_name,
-        last_name=last_name,
-        hashed_password=hashed_password,
-        role=role,
-        is_verified=False,
-        user_class=user_class,
-        subject=subject
-    )
-    db.add(user)
+    user_id: str,
+    user_update: UserUpdate,
+    is_admin: bool = False
+) -> Optional[User]:
+    """Update a user"""
+    db_user = get_user(db, user_id)
+    
+    if not db_user:
+        return None
+    
+    update_data = user_update.model_dump(exclude_unset=True)
+    
+    # Only admins can change user_type
+    if 'user_type' in update_data and not is_admin:
+        del update_data['user_type']
+    
+    for key, value in update_data.items():
+        if value is not None:
+            setattr(db_user, key, value)
+    
     db.commit()
-    db.refresh(user)
-    return user
+    db.refresh(db_user)
+    return db_user
 
-def create_admin_with_otp(
-    db: Session, email: str, first_name: str, last_name: str, password: str
-) -> tuple[User, str]:
-    hashed_password = get_password_hash(password) 
-    otp = generate_otp()
-    user = User(
-        email=email,
-        first_name=first_name,
-        last_name=last_name,
-        role=UserRole.ADMIN,
-        otp_code=otp,
-        hashed_password=hashed_password,
-        otp_created_at=datetime.utcnow(),
-        is_verified=False
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    return user, otp
-
-def verify_otp(db: Session, email: str, otp: str) -> bool:
-    user = get_user_by_email(db, email)
-    if not user or user.role != UserRole.ADMIN:
+def delete_user(db: Session, user_id: str) -> bool:
+    """Delete a user"""
+    db_user = get_user(db, user_id)
+    
+    if not db_user:
         return False
-    if not user.otp_code or not user.otp_created_at:
-        return False
-    if datetime.utcnow() - user.otp_created_at > timedelta(minutes=settings.OTP_EXPIRE_MINUTES):
-        return False
-    if user.otp_code != otp:
-        return False
-    user.is_verified = True
-    user.otp_code = None
-    user.otp_created_at = None
-    user.last_login = datetime.utcnow()
+    
+    db.delete(db_user)
     db.commit()
     return True
-
-def generate_new_otp(db: Session, user: User) -> str:
-    otp = generate_otp()
-    user.otp_code = otp
-    user.otp_created_at = datetime.utcnow()
-    db.commit()
-    return otp
 
 def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
+    """Authenticate a user"""
     user = get_user_by_email(db, email)
-    if not user or not user.hashed_password:
+    
+    if not user:
         return None
-    if user.locked_until and user.locked_until > datetime.utcnow():
+    
+    if not verify_password(password, user.password_hash):
         return None
-    if not verify_password(password, user.hashed_password):
-        user.failed_login_attempts += 1
-        if user.failed_login_attempts >= 5:
-            user.locked_until = datetime.utcnow() + timedelta(minutes=30)
-        db.commit()
+    
+    if not user.is_active:
         return None
-    user.failed_login_attempts = 0
-    user.locked_until = None
-    user.last_login = datetime.utcnow()
-    db.commit()
+    
     return user
 
-def set_verification_token(db: Session, user: User) -> str:
-    token = generate_token()
-    user.reset_token = token
-    user.reset_token_created_at = datetime.utcnow()
-    db.commit()
-    return token
-
-def verify_email_token(db: Session, token: str) -> bool:
-    user = db.query(User).filter(User.reset_token == token).first()
-    if not user or not user.reset_token_created_at:
-        return False
-    if datetime.utcnow() - user.reset_token_created_at > timedelta(hours=24):
-        return False
-    user.is_verified = True
-    user.reset_token = None
-    user.reset_token_created_at = None
-    db.commit()
-    return True
-
-def create_password_reset_token(db: Session, user: User) -> str:
-    token = generate_token()
-    user.reset_token = token
-    user.reset_token_created_at = datetime.utcnow()
-    db.commit()
-    return token
-
-def reset_password_with_token(db: Session, token: str, new_password: str) -> bool:
-    user = db.query(User).filter(User.reset_token == token).first()
-    if not user or not user.reset_token_created_at:
-        return False
-    if datetime.utcnow() - user.reset_token_created_at > timedelta(hours=1):
-        return False
-    user.hashed_password = get_password_hash(new_password)
-    user.reset_token = None
-    user.reset_token_created_at = None
-    db.commit()
-    return True
-
-def update_user_profile(
+def change_password(
     db: Session,
-    user: User,
-    first_name: Optional[str] = None,
-    last_name: Optional[str] = None,
-    email: Optional[str] = None,
-    user_class: Optional[str] = None,
-    subject: Optional[str] = None
-) -> User:
-    if first_name is not None:
-        user.first_name = first_name
-    if last_name is not None:
-        user.last_name = last_name
-    if email is not None:
-        user.email = email
-    if user_class is not None:
-        user.user_class = user_class
-    if subject is not None:
-        user.subject = subject
+    user_id: str,
+    current_password: str,
+    new_password: str
+) -> Optional[User]:
+    """Change user password"""
+    user = get_user(db, user_id)
+    
+    if not user or not verify_password(current_password, user.password_hash):
+        return None
+    
+    user.password_hash = get_password_hash(new_password)
     db.commit()
     db.refresh(user)
     return user
 
-# === Refresh Token Management ===
-def create_refresh_token_db(db: Session, user_id: str, token: str) -> RefreshToken:
-    expires_at = datetime.utcnow() + timedelta(minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES)
-    refresh_token = RefreshToken(
-        token=token,
-        user_id=user_id,
-        expires_at=expires_at
-    )
-    db.add(refresh_token)
+def toggle_user_active(db: Session, user_id: str, is_admin: bool = False) -> Optional[User]:
+    """Toggle user active status (admin only)"""
+    if not is_admin:
+        return None
+    
+    user = get_user(db, user_id)
+    
+    if not user:
+        return None
+    
+    user.is_active = not user.is_active
     db.commit()
-    db.refresh(refresh_token)
-    return refresh_token
-
-def get_refresh_token(db: Session, token: str) -> Optional[RefreshToken]:
-    return db.query(RefreshToken).filter(
-        RefreshToken.token == token,
-        RefreshToken.is_revoked == False,
-        RefreshToken.expires_at > datetime.utcnow()
-    ).first()
-
-def revoke_refresh_token(db: Session, token: str) -> bool:
-    rt = db.query(RefreshToken).filter(RefreshToken.token == token).first()
-    if rt:
-        rt.is_revoked = True
-        db.commit()
-        return True
-    return False
-
-def revoke_all_user_tokens(db: Session, user_id: str):
-    db.query(RefreshToken).filter(
-        RefreshToken.user_id == user_id,
-        RefreshToken.is_revoked == False
-    ).update({RefreshToken.is_revoked: True})
-    db.commit()
-
-# === Search ===
-def search_users(
-    db: Session,
-    name: str = None,
-    user_class: str = None,
-    subject: str = None
-) -> List[User]:
-    query = db.query(User)
-    if name:
-        name = name.strip().lower()
-        query = query.filter(
-            or_(
-                (User.first_name + " " + User.last_name).ilike(f"%{name}%"),
-                User.first_name.ilike(f"%{name}%"),
-                User.last_name.ilike(f"%{name}%")
-            )
-        )
-    if user_class:
-        query = query.filter(User.user_class.ilike(f"%{user_class}%"))
-    if subject:
-        query = query.filter(User.subject.ilike(f"%{subject}%"))
-    return query.all()
+    db.refresh(user)
     return user
 
-def get_users_by_class(db: Session, student_class: str):
-    """Get all students in a specific class"""
-    return db.query(User).filter(
-        User.user_type == 'student',
-        User.student_class == student_class,
-        User.is_active == True
-    ).all()
-
-def get_all_users(db: Session, skip: int = 0, limit: int = 100, user_type: str = None):
-    """Get all users with optional type filter"""
-    query = db.query(User)
-    if user_type:
-        query = query.filter(User.user_type == user_type)
-    return query.offset(skip).limit(limit).all()
+def update_user_last_login(db: Session, user_id: str) -> Optional[User]:
+    """Update user's last login time"""
+    user = get_user(db, user_id)
+    
+    if not user:
+        return None
+    
+    # The updated_at field will automatically update
+    db.commit()
+    db.refresh(user)
+    return user

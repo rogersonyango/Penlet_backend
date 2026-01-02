@@ -1,201 +1,112 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+# app/api/v1/endpoints/subject.py
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
-from typing import Optional, List
+from typing import List, Optional
+
+from app.api.deps import get_current_user
 from app.db.session import get_db
+from app.models.user import User
 from app.schemas.subject import (
-    SubjectCreate, 
-    SubjectUpdate, 
-    SubjectResponse, 
-    SubjectListResponse,
-    VALID_CLASSES
+    SubjectCreate, SubjectUpdate, SubjectResponse,
+    SubjectListResponse, SubjectStatsResponse
 )
 from app.crud import subject as crud_subject
-from app.utils.auth import get_current_user
-from app.models.user import User
 
-router = APIRouter(prefix="/subjects", tags=["subjects"])
+router = APIRouter()
 
-@router.post("/", response_model=SubjectResponse, status_code=201)
+@router.post("/", response_model=SubjectResponse, status_code=status.HTTP_201_CREATED)
 def create_subject(
     subject: SubjectCreate,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+) -> SubjectResponse:
     """
-    Create a new subject (admin only).
-    
-    - **name**: Subject name (required)
-    - **code**: Unique subject code (required)
-    - **class_level**: Class level S1-S6 (required)
-    - **description**: Subject description
-    - **color**: Hex color for UI display
-    - **icon**: Lucide icon name
-    - **term**: Academic term
-    - **teacher_id**: Assigned teacher ID
-    - **teacher_name**: Teacher's name
+    Create a new subject.
     """
-    # Only admins can create subjects
-    if current_user.user_type != 'admin':
-        raise HTTPException(status_code=403, detail="Only admins can create subjects")
-    
-    # Check if subject code already exists
-    existing = crud_subject.get_subject_by_code(db, subject.code)
+    # Check if subject code already exists for this user
+    existing = crud_subject.get_subject_by_code(db, subject.code, current_user.id)
     if existing:
         raise HTTPException(
-            status_code=400,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Subject with code '{subject.code}' already exists"
         )
     
-    return crud_subject.create_subject(db, subject)
+    return crud_subject.create_subject(db, subject, current_user.id)
 
 @router.get("/", response_model=SubjectListResponse)
 def get_subjects(
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(20, ge=1, le=100, description="Items per page"),
-    search: Optional[str] = Query(None, description="Search in name, code, description"),
-    class_level: Optional[str] = Query(None, description="Filter by class level (S1-S6)"),
+    search: Optional[str] = Query(None, description="Search in name, code, description, teacher"),
+    grade_level: Optional[str] = Query(None, description="Filter by grade level"),
     term: Optional[str] = Query(None, description="Filter by term"),
+    is_favorite: Optional[bool] = Query(None, description="Filter favorites only"),
     is_active: Optional[bool] = Query(None, description="Filter by active status"),
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+) -> SubjectListResponse:
     """
-    Get subjects based on user role:
-    
-    - **Students**: See subjects for their class only
-    - **Teachers**: See subjects assigned to them
-    - **Admins**: See all subjects
+    Get user's subjects with filters and pagination.
     """
     skip = (page - 1) * page_size
     
-    # Students: only see subjects for their class
-    if current_user.user_type == 'student':
-        if not current_user.student_class:
-            raise HTTPException(
-                status_code=400,
-                detail="Student class not set. Please update your profile."
-            )
-        
-        subjects, total = crud_subject.get_subjects_by_class(
-            db=db,
-            class_level=current_user.student_class,
-            skip=skip,
-            limit=page_size,
-            search=search,
-            term=term,
-            is_active=is_active if is_active is not None else True
-        )
+    subjects, total = crud_subject.get_user_subjects(
+        db=db,
+        user_id=current_user.id,
+        skip=skip,
+        limit=page_size,
+        search=search,
+        grade_level=grade_level,
+        term=term,
+        is_favorite=is_favorite,
+        is_active=is_active
+    )
     
-    # Teachers: see subjects assigned to them
-    elif current_user.user_type == 'teacher':
-        subjects, total = crud_subject.get_subjects_by_teacher(
-            db=db,
-            teacher_id=current_user.id,
-            skip=skip,
-            limit=page_size,
-            class_level=class_level
-        )
-    
-    # Admins: see all subjects
-    else:
-        subjects, total = crud_subject.get_all_subjects(
-            db=db,
-            skip=skip,
-            limit=page_size,
-            search=search,
-            class_level=class_level,
-            term=term,
-            is_active=is_active
-        )
-    
-    return {
-        "subjects": subjects,
-        "total": total,
-        "page": page,
-        "page_size": page_size
-    }
+    return SubjectListResponse(
+        subjects=subjects,
+        total=total,
+        page=page,
+        page_size=page_size
+    )
 
 @router.get("/active", response_model=List[SubjectResponse])
 def get_active_subjects(
-    class_level: Optional[str] = Query(None, description="Filter by class level"),
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+) -> List[SubjectResponse]:
     """
     Get all active subjects for dropdowns and selectors.
-    
-    - Students: Returns subjects for their class
-    - Teachers: Returns subjects assigned to them
-    - Admins: Returns all active subjects (can filter by class)
     """
-    if current_user.user_type == 'student':
-        if not current_user.student_class:
-            return []
-        return crud_subject.get_active_subjects_for_class(db, current_user.student_class)
-    
-    elif current_user.user_type == 'teacher':
-        subjects, _ = crud_subject.get_subjects_by_teacher(db, current_user.id)
-        return [s for s in subjects if s.is_active]
-    
-    else:
-        return crud_subject.get_active_subjects(db, class_level)
-
-@router.get("/by-class/{class_level}", response_model=List[SubjectResponse])
-def get_subjects_by_class(
-    class_level: str,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """
-    Get all subjects for a specific class.
-    
-    - Students can only access their own class
-    - Teachers and Admins can access any class
-    """
-    if class_level not in VALID_CLASSES:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid class level. Must be one of: {', '.join(VALID_CLASSES)}"
-        )
-    
-    # Students can only see their own class
-    if current_user.user_type == 'student' and current_user.student_class != class_level:
-        raise HTTPException(status_code=403, detail="Not authorized to view other classes")
-    
-    subjects, _ = crud_subject.get_subjects_by_class(db, class_level)
+    subjects = crud_subject.get_active_subjects(db, current_user.id)
     return subjects
 
-@router.get("/stats")
+@router.get("/stats", response_model=List[SubjectStatsResponse])
 def get_subjects_stats(
-    class_level: Optional[str] = Query(None, description="Filter by class level"),
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+) -> List[SubjectStatsResponse]:
     """
     Get subjects with aggregated statistics.
     """
-    # Students only see stats for their class
-    if current_user.user_type == 'student':
-        class_level = current_user.student_class
-    
-    return crud_subject.get_subjects_with_stats(db, class_level)
+    stats = crud_subject.get_subjects_with_stats(db, current_user.id)
+    return stats
 
 @router.get("/{subject_id}", response_model=SubjectResponse)
 def get_subject(
     subject_id: str,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Get a single subject by ID"""
-    subject = crud_subject.get_subject(db, subject_id)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+) -> SubjectResponse:
+    """
+    Get a single subject by ID.
+    """
+    subject = crud_subject.get_subject(db, subject_id, current_user.id)
     
     if not subject:
-        raise HTTPException(status_code=404, detail="Subject not found")
-    
-    # Students can only see subjects for their class
-    if current_user.user_type == 'student':
-        if subject.class_level != current_user.student_class:
-            raise HTTPException(status_code=404, detail="Subject not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Subject not found"
+        )
     
     return subject
 
@@ -203,87 +114,128 @@ def get_subject(
 def update_subject(
     subject_id: str,
     subject_update: SubjectUpdate,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+) -> SubjectResponse:
     """
-    Update a subject (admin only).
+    Update a subject.
     """
-    if current_user.user_type != 'admin':
-        raise HTTPException(status_code=403, detail="Only admins can update subjects")
-    
-    # If updating code, check it's not already used
+    # If updating code, check it's not already used by another subject
     if subject_update.code:
-        existing = crud_subject.get_subject_by_code(db, subject_update.code)
+        existing = crud_subject.get_subject_by_code(db, subject_update.code, current_user.id)
         if existing and existing.id != subject_id:
             raise HTTPException(
-                status_code=400,
+                status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Subject with code '{subject_update.code}' already exists"
             )
     
-    subject = crud_subject.update_subject(db, subject_id, subject_update)
+    subject = crud_subject.update_subject(db, subject_id, subject_update, current_user.id)
     
     if not subject:
-        raise HTTPException(status_code=404, detail="Subject not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Subject not found"
+        )
     
     return subject
 
-@router.delete("/{subject_id}", status_code=204)
+@router.delete("/{subject_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_subject(
     subject_id: str,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+) -> None:
     """
-    Delete a subject (admin only).
+    Delete a subject.
     
-    Warning: Consider deactivating (is_active=false) instead of deleting.
+    Note: Consider archiving (is_active=false) instead of deletion.
     """
-    if current_user.user_type != 'admin':
-        raise HTTPException(status_code=403, detail="Only admins can delete subjects")
-    
-    success = crud_subject.delete_subject(db, subject_id)
+    success = crud_subject.delete_subject(db, subject_id, current_user.id)
     
     if not success:
-        raise HTTPException(status_code=404, detail="Subject not found")
-    
-    return None
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Subject not found"
+        )
 
-@router.post("/{subject_id}/assign-teacher", response_model=SubjectResponse)
-def assign_teacher_to_subject(
+@router.post("/{subject_id}/favorite", response_model=SubjectResponse)
+def toggle_favorite(
     subject_id: str,
-    teacher_id: str = Query(..., description="Teacher user ID"),
-    teacher_name: str = Query(..., description="Teacher name"),
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+) -> SubjectResponse:
     """
-    Assign a teacher to a subject (admin only).
+    Toggle favorite status of a subject.
     """
-    if current_user.user_type != 'admin':
-        raise HTTPException(status_code=403, detail="Only admins can assign teachers")
-    
-    subject = crud_subject.assign_teacher(db, subject_id, teacher_id, teacher_name)
+    subject = crud_subject.toggle_favorite(db, subject_id, current_user.id)
     
     if not subject:
-        raise HTTPException(status_code=404, detail="Subject not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Subject not found"
+        )
     
     return subject
 
-@router.get("/classes/list", response_model=List[dict])
-def get_available_classes(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
+@router.post("/{subject_id}/archive", response_model=SubjectResponse)
+def archive_subject(
+    subject_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+) -> SubjectResponse:
     """
-    Get list of available class levels with subject counts.
+    Archive a subject (set is_active=false).
     """
-    result = []
-    for cls in VALID_CLASSES:
-        subjects, count = crud_subject.get_subjects_by_class(db, cls)
-        result.append({
-            "class_level": cls,
-            "name": f"Senior {cls[1]}",
-            "subject_count": count
-        })
-    return result
+    subject = crud_subject.get_subject(db, subject_id, current_user.id)
+    if not subject:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Subject not found"
+        )
+    
+    subject.is_active = False
+    db.commit()
+    db.refresh(subject)
+    
+    return subject
+
+@router.post("/{subject_id}/activate", response_model=SubjectResponse)
+def activate_subject(
+    subject_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+) -> SubjectResponse:
+    """
+    Activate a subject (set is_active=true).
+    """
+    subject = crud_subject.get_subject(db, subject_id, current_user.id)
+    if not subject:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Subject not found"
+        )
+    
+    subject.is_active = True
+    db.commit()
+    db.refresh(subject)
+    
+    return subject
+
+@router.post("/{subject_id}/refresh-counts", response_model=SubjectResponse)
+def refresh_subject_counts(
+    subject_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+) -> SubjectResponse:
+    """
+    Manually refresh the counts for notes, quizzes, and videos.
+    """
+    subject = crud_subject.update_subject_counts(db, subject_id)
+    
+    if not subject:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Subject not found"
+        )
+    
+    return subject

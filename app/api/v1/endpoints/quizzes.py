@@ -1,165 +1,350 @@
+# app/api/v1/endpoints/quiz.py
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
-# Schemas
-from app.schemas.quiz import (
-    QuizOut,
-    QuizCreate,
-    QuizUpdate,
-    QuizAttemptStart,
-    QuizAttemptOut,
-    AnswerSubmit
-)
-
-# CRUD functions , these have been given aliased to avoid name conflicts
-from app.crud.quiz import (
-    get_quizzes,
-    get_quiz,
-    create_quiz as crud_create_quiz,
-    update_quiz as crud_update_quiz,
-    delete_quiz as crud_delete_quiz,
-    create_attempt as crud_create_attempt,
-    get_attempt,
-    get_user_attempts,
-    submit_answer as crud_submit_answer,
-    finalize_attempt as crud_finalize_attempt,
-    get_leaderboard,
-    get_quiz_statistics
-)
-
+from app.api.deps import get_current_user, get_current_teacher_or_admin, get_current_admin_user
 from app.db.session import get_db
-from app.utils.auth import get_current_user
+from app.models.user import User
+from app.schemas.quiz import (
+    QuizCreate, QuizUpdate, QuizResponse,
+    QuizAttemptStart, QuizAttemptResponse, AttemptSubmit,
+    QuestionSchema, AnswerSubmit
+)
+from app.crud import quiz as crud_quiz
 
-router = APIRouter(prefix="/api/quizzes", tags=["quizzes"])
+router = APIRouter()
 
-
-def require_teacher_or_admin(current_user: dict = Depends(get_current_user)):
-    if current_user.get("role") not in ["teacher", "admin"]:
-        raise HTTPException(status_code=403, detail="Not authorized")
-
-
-
-@router.get("/", response_model=List[QuizOut])
+@router.get("/", response_model=List[QuizResponse])
 def list_quizzes(
-    curriculum: Optional[str] = None,
-    skip: int = 0,
-    limit: int = 100,
-    db: Session = Depends(get_db)
-):
-    return get_quizzes(db, skip=skip, limit=limit, curriculum=curriculum)
+    curriculum: Optional[str] = Query(None, description="Filter by curriculum"),
+    search: Optional[str] = Query(None, description="Search in title/description"),
+    created_by: Optional[str] = Query(None, description="Filter by creator"),
+    is_active: Optional[bool] = Query(None, description="Filter by active status"),
+    skip: int = Query(0, ge=0, description="Number of records to skip"),
+    limit: int = Query(100, ge=1, le=1000, description="Maximum number of records"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+) -> List[QuizResponse]:
+    """
+    List quizzes with optional filtering.
+    """
+    quizzes = crud_quiz.get_quizzes(
+        db=db,
+        skip=skip,
+        limit=limit,
+        curriculum=curriculum,
+        search=search,
+        created_by=created_by,
+        is_active=is_active
+    )
+    return quizzes
 
-
-@router.post("/", response_model=QuizOut, dependencies=[Depends(require_teacher_or_admin)])
+@router.post("/", response_model=QuizResponse)
 def create_new_quiz(
     quiz: QuizCreate,
-    current_user: dict = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    return crud_create_quiz(db, quiz, created_by=current_user["email"])
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_teacher_or_admin)
+) -> QuizResponse:
+    """
+    Create a new quiz (teachers/admins only).
+    """
+    return crud_quiz.create_quiz(db=db, quiz=quiz, created_by=current_user.id)
 
-
-@router.get("/{quizId}/", response_model=QuizOut)
-def get_quiz_by_id(quizId: int, db: Session = Depends(get_db)):
-    quiz = get_quiz(db, quizId)
+@router.get("/{quiz_id}/", response_model=QuizResponse)
+def get_quiz_by_id(
+    quiz_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+) -> QuizResponse:
+    """
+    Retrieve a specific quiz by ID.
+    """
+    quiz = crud_quiz.get_quiz(db, quiz_id)
     if not quiz:
         raise HTTPException(status_code=404, detail="Quiz not found")
+    
+    # Check if quiz is active or user is creator/admin
+    if not quiz.is_active and current_user.id != quiz.created_by and current_user.user_type != "admin":
+        raise HTTPException(
+            status_code=403,
+            detail="This quiz is not active"
+        )
+    
     return quiz
 
-
-@router.put("/{quizId}/", response_model=QuizOut, dependencies=[Depends(require_teacher_or_admin)])
+@router.put("/{quiz_id}/", response_model=QuizResponse)
 def update_existing_quiz(
-    quizId: int,
+    quiz_id: int,
     quiz_update: QuizUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+) -> QuizResponse:
+    """
+    Update a quiz (creator or admin only).
+    """
+    quiz = crud_quiz.get_quiz(db, quiz_id)
+    if not quiz:
+        raise HTTPException(status_code=404, detail="Quiz not found")
+    
+    # Check authorization
+    if current_user.id != quiz.created_by and current_user.user_type != "admin":
+        raise HTTPException(
+            status_code=403,
+            detail="Not authorized to update this quiz"
+        )
+    
+    return crud_quiz.update_quiz(db, quiz_id, quiz_update)
+
+@router.delete("/{quiz_id}/")
+def delete_existing_quiz(
+    quiz_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
-    quiz = crud_update_quiz(db, quizId, quiz_update)
+    """
+    Delete a quiz (creator or admin only).
+    """
+    quiz = crud_quiz.get_quiz(db, quiz_id)
     if not quiz:
         raise HTTPException(status_code=404, detail="Quiz not found")
-    return quiz
-
-
-@router.delete("/{quizId}/", dependencies=[Depends(require_teacher_or_admin)])
-def delete_existing_quiz(quizId: int, db: Session = Depends(get_db)):
-    quiz = crud_delete_quiz(db, quizId)
-    if not quiz:
+    
+    # Check authorization
+    if current_user.id != quiz.created_by and current_user.user_type != "admin":
+        raise HTTPException(
+            status_code=403,
+            detail="Not authorized to delete this quiz"
+        )
+    
+    success = crud_quiz.delete_quiz(db, quiz_id)
+    if not success:
         raise HTTPException(status_code=404, detail="Quiz not found")
+    
     return {"detail": "Quiz deleted"}
 
+@router.post("/{quiz_id}/toggle-active/", response_model=QuizResponse)
+def toggle_quiz_active(
+    quiz_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+) -> QuizResponse:
+    """
+    Toggle quiz active status (creator or admin only).
+    """
+    quiz = crud_quiz.get_quiz(db, quiz_id)
+    if not quiz:
+        raise HTTPException(status_code=404, detail="Quiz not found")
+    
+    # Check authorization
+    if current_user.id != quiz.created_by and current_user.user_type != "admin":
+        raise HTTPException(
+            status_code=403,
+            detail="Not authorized to modify this quiz"
+        )
+    
+    updated = crud_quiz.toggle_quiz_active(db, quiz_id)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Quiz not found")
+    
+    return updated
 
-# === Attempt Endpoints ===
-
-@router.post("/{quizId}/start/", response_model=QuizAttemptOut)
+# Quiz Attempt endpoints
+@router.post("/{quiz_id}/attempts/", response_model=QuizAttemptResponse)
 def start_new_attempt(
-    quizId: int,
-    attempt: QuizAttemptStart,
-    db: Session = Depends(get_db)
-):
-    quiz = get_quiz(db, quizId)
-    if not quiz or not quiz.is_active:
-        raise HTTPException(status_code=404, detail="Quiz not available")
-    return crud_create_attempt(db, quizId, attempt.user_id)
+    quiz_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+) -> QuizAttemptResponse:
+    """
+    Start a new quiz attempt.
+    """
+    attempt = crud_quiz.create_attempt(db, quiz_id, current_user.id)
+    if not attempt:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot start attempt (quiz not found or not active)"
+        )
+    return attempt
 
-
-@router.post("/attempts/{attemptId}/answer/", response_model=QuizAttemptOut)
-def record_answer(
-    attemptId: int,
-    answer: AnswerSubmit,
-    db: Session = Depends(get_db)
-):
-    attempt = crud_submit_answer(db, attemptId, answer.question_id, answer.answer)
+@router.get("/attempts/{attempt_id}/", response_model=QuizAttemptResponse)
+def get_attempt_by_id(
+    attempt_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+) -> QuizAttemptResponse:
+    """
+    Get a specific quiz attempt.
+    """
+    attempt = crud_quiz.get_attempt(db, attempt_id)
     if not attempt:
         raise HTTPException(status_code=404, detail="Attempt not found")
+    
+    # Check ownership
+    if attempt.user_id != current_user.id and current_user.user_type != "admin":
+        raise HTTPException(
+            status_code=403,
+            detail="Not authorized to view this attempt"
+        )
+    
     return attempt
 
-
-@router.post("/attempts/{attemptId}/submit/", response_model=QuizAttemptOut)
-def finalize_quiz_attempt(
-    attemptId: int,
-    db: Session = Depends(get_db)
-):
-    attempt = crud_finalize_attempt(db, attemptId)
+@router.post("/attempts/{attempt_id}/answers/", response_model=QuizAttemptResponse)
+def submit_answer(
+    attempt_id: int,
+    answer: AnswerSubmit,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+) -> QuizAttemptResponse:
+    """
+    Submit an answer for a quiz question.
+    """
+    attempt = crud_quiz.get_attempt(db, attempt_id)
     if not attempt:
-        raise HTTPException(status_code=400, detail="Invalid or already submitted attempt")
+        raise HTTPException(status_code=404, detail="Attempt not found")
+    
+    # Check ownership
+    if attempt.user_id != current_user.id:
+        raise HTTPException(
+            status_code=403,
+            detail="Not authorized to submit answers for this attempt"
+        )
+    
+    # Check if already submitted
+    if attempt.is_submitted:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot submit answers to a completed attempt"
+        )
+    
+    return crud_quiz.submit_answer(db, attempt_id, answer.question_id, answer.answer)
+
+@router.post("/attempts/{attempt_id}/submit/", response_model=QuizAttemptResponse)
+def finalize_quiz_attempt(
+    attempt_id: int,
+    answers: Optional[Dict[str, Any]] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+) -> QuizAttemptResponse:
+    """
+    Finalize and submit a quiz attempt.
+    """
+    attempt = crud_quiz.get_attempt(db, attempt_id)
+    if not attempt:
+        raise HTTPException(status_code=404, detail="Attempt not found")
+    
+    # Check ownership
+    if attempt.user_id != current_user.id:
+        raise HTTPException(
+            status_code=403,
+            detail="Not authorized to submit this attempt"
+        )
+    
+    # If answers are provided, submit them all at once
+    if answers:
+        attempt = crud_quiz.submit_attempt(db, attempt_id, answers)
+    else:
+        # Otherwise finalize with existing answers
+        attempt = crud_quiz.finalize_attempt(db, attempt_id)
+    
+    if not attempt:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot submit attempt (no answers or already submitted)"
+        )
+    
     return attempt
 
-
-@router.get("/attempts/{attemptId}/results/", response_model=QuizAttemptOut)
-def get_attempt_results(attemptId: int, db: Session = Depends(get_db)):
-    attempt = get_attempt(db, attemptId)
-    if not attempt or not attempt.is_submitted:
-        raise HTTPException(status_code=404, detail="Results not available")
-    return attempt
-
-
-@router.get("/attempts/", response_model=List[QuizAttemptOut])
+@router.get("/users/{user_id}/attempts/", response_model=List[QuizAttemptResponse])
 def get_user_attempts_history(
-    user_id: str = Query(...),
-    db: Session = Depends(get_db)
-):
-    return get_user_attempts(db, user_id)
+    user_id: str,
+    quiz_id: Optional[int] = Query(None, description="Filter by quiz"),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+) -> List[QuizAttemptResponse]:
+    """
+    Get quiz attempts for a user.
+    """
+    # Check authorization (users can only see their own attempts unless admin)
+    if user_id != current_user.id and current_user.user_type != "admin":
+        raise HTTPException(
+            status_code=403,
+            detail="Not authorized to view other users' attempts"
+        )
+    
+    return crud_quiz.get_user_attempts(db, user_id, quiz_id, skip, limit)
 
+@router.get("/{quiz_id}/leaderboard/")
+def get_quiz_leaderboard(
+    quiz_id: int,
+    limit: int = Query(10, ge=1, le=100, description="Number of top scores"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+) -> List[Dict[str, Any]]:
+    """
+    Get leaderboard for a quiz.
+    """
+    quiz = crud_quiz.get_quiz(db, quiz_id)
+    if not quiz:
+        raise HTTPException(status_code=404, detail="Quiz not found")
+    
+    return crud_quiz.get_leaderboard(db, quiz_id, limit)
 
-@router.get("/{quizId}/leaderboard/", response_model=List[QuizAttemptOut])
-def get_quiz_leaderboard(quizId: int, db: Session = Depends(get_db)):
-    return get_leaderboard(db, quizId)
+@router.get("/{quiz_id}/statistics/")
+def get_quiz_statistics_endpoint(
+    quiz_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_teacher_or_admin)
+) -> Dict[str, Any]:
+    """
+    Get statistics for a quiz (teachers/admins only).
+    """
+    quiz = crud_quiz.get_quiz(db, quiz_id)
+    if not quiz:
+        raise HTTPException(status_code=404, detail="Quiz not found")
+    
+    # Check authorization (creator or admin)
+    if current_user.id != quiz.created_by and current_user.user_type != "admin":
+        raise HTTPException(
+            status_code=403,
+            detail="Not authorized to view quiz statistics"
+        )
+    
+    return crud_quiz.get_quiz_statistics(db, quiz_id)
 
-
-@router.get("/practice/")
+@router.get("/practice/questions/")
 def get_practice_questions(
-    curriculum: str = Query(...),
-    difficulty: str = Query("medium"),
-    db: Session = Depends(get_db)
+    curriculum: str = Query(..., description="Curriculum to practice"),
+    difficulty: Optional[str] = Query("medium", description="Difficulty level"),
+    limit: int = Query(10, ge=1, le=50, description="Number of questions"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
-    quizzes = get_quizzes(db, curriculum=curriculum)
+    """
+    Get practice questions from various quizzes.
+    """
+    quizzes = crud_quiz.get_quizzes(db, curriculum=curriculum, is_active=True)
+    
     all_questions = []
-    for q in quizzes:
-        if q.questions:
-            all_questions.extend(q.questions)
-    return {"questions": all_questions[:5]}
-
-
-@router.get("/{quizId}/statistics/", dependencies=[Depends(require_teacher_or_admin)])
-def get_quiz_statistics_endpoint(quizId: int, db: Session = Depends(get_db)):
-    stats = get_quiz_statistics(db, quizId)
-    return stats
+    for quiz in quizzes:
+        if quiz.questions:
+            # Parse questions from JSON string if needed
+            questions = quiz.questions
+            if isinstance(questions, str):
+                import json
+                questions = json.loads(questions)
+            
+            for question in questions:
+                question["quiz_title"] = quiz.title
+                question["quiz_id"] = quiz.id
+                all_questions.append(question)
+    
+    # Simple difficulty filtering (you can implement more sophisticated logic)
+    filtered_questions = all_questions
+    if difficulty == "easy":
+        filtered_questions = [q for q in all_questions if not q.get("difficulty") or q.get("difficulty") == "easy"]
+    elif difficulty == "hard":
+        filtered_questions = [q for q in all_questions if q.get("difficulty") == "hard"]
+    
+    return {"questions": filtered_questions[:limit]}

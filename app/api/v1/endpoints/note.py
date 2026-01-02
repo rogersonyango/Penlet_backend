@@ -1,167 +1,348 @@
 # app/api/v1/endpoints/note.py
-from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, Query, status, File, UploadFile
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional
+from pathlib import Path
+
+from app.api.deps import get_current_user, get_current_teacher_or_admin, get_current_admin_user
 from app.db.session import get_db
-from app.crud import note as crud_note
+from app.models.user import User
 from app.schemas.note import (
-    NoteCreate, NoteOut, NoteUpdate,
-    CommentCreate, CommentOut,
+    NoteCreate, NoteUpdate, NoteResponse,
+    CommentCreate, CommentUpdate, CommentResponse,
     LikeToggleResponse, FavoriteToggleResponse
 )
-from app.utils.auth import get_current_user 
-from app.utils.file_upload import save_upload_file  # e.g., saves to /uploads/
-from app.models.user import User
+from app.crud import note as crud_note
 
 router = APIRouter()
 
-@router.get("/", response_model=List[NoteOut])
-def read_notes(
-    db: Session = Depends(get_db),
-    curriculum: Optional[str] = None,
-    search: Optional[str] = None,
-    sort_by: str = "created_at",
-    sort_order: str = "desc",
-    skip: int = 0,
-    limit: int = 20
-):
-    notes = crud_note.get_notes(db, skip, limit, curriculum, search, sort_by, sort_order)
-    return notes
+# File upload configuration
+UPLOAD_DIR = Path("uploads/notes")
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
-@router.post("/", response_model=NoteOut, status_code=status.HTTP_201_CREATED)
-def create_note(
-    note: NoteCreate,
-    file: UploadFile = File(None),
+def save_upload_file(file: UploadFile) -> str:
+    """Save uploaded file and return file URL/path"""
+    file_path = UPLOAD_DIR / file.filename
+    with file_path.open("wb") as buffer:
+        content = file.file.read()
+        buffer.write(content)
+    return f"/uploads/notes/{file.filename}"
+
+@router.get("/", response_model=List[NoteResponse])
+def read_notes(
+    curriculum: Optional[str] = Query(None, description="Filter by curriculum"),
+    search: Optional[str] = Query(None, description="Search in title/content"),
+    sort_by: str = Query("created_at", description="Field to sort by"),
+    sort_order: str = Query("desc", description="Sort order (asc/desc)"),
+    skip: int = Query(0, ge=0, description="Number of records to skip"),
+    limit: int = Query(20, ge=1, le=100, description="Maximum number of records"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
-):
-    # TODO: validate role (teacher/admin) — assume role in User model
-    if current_user.role not in ["teacher", "admin"]:
-        raise HTTPException(status_code=403, detail="Not authorized to create notes")
-    
+) -> List[NoteResponse]:
+    """
+    Retrieve notes with optional filtering.
+    """
+    notes = crud_note.get_notes(
+        db=db,
+        skip=skip,
+        limit=limit,
+        curriculum=curriculum,
+        search=search,
+        sort_by=sort_by,
+        sort_order=sort_order
+    )
+    return notes
+
+@router.post("/", response_model=NoteResponse, status_code=status.HTTP_201_CREATED)
+def create_note(
+    note: NoteCreate,
+    file: Optional[UploadFile] = File(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_teacher_or_admin)
+) -> NoteResponse:
+    """
+    Create a new note (teachers/admins only).
+    """
     file_url = None
     if file:
-        file_url = save_upload_file(file)  # Implement this in utils
-
-    db_note = crud_note.create_note(db, note, current_user.id)
+        file_url = save_upload_file(file)
+    
+    db_note = crud_note.create_note(db=db, note=note, author_id=current_user.id)
+    
     if file_url:
         db_note.file_url = file_url
         db.commit()
         db.refresh(db_note)
+    
     return db_note
 
-@router.get("/{noteId}/", response_model=NoteOut)
-def read_note(noteId: int, db: Session = Depends(get_db)):
-    note = crud_note.increment_view_count(db, noteId)
+@router.get("/{note_id}/", response_model=NoteResponse)
+def read_note(
+    note_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+) -> NoteResponse:
+    """
+    Retrieve a specific note by ID.
+    """
+    note = crud_note.get_note(db, note_id)
     if not note:
-        raise HTTPException(status_code=404, detail="Note not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Note not found"
+        )
+    
+    # Increment view count
+    crud_note.increment_view_count(db, note_id)
+    
     return note
 
-@router.put("/{noteId}/", response_model=NoteOut)
+@router.put("/{note_id}/", response_model=NoteResponse)
 def update_note(
-    noteId: int,
+    note_id: int,
     note_update: NoteUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
-):
-    db_note = crud_note.update_note(db, noteId, note_update, current_user.id)
-    if not db_note:
-        raise HTTPException(status_code=404, detail="Note not found or not authorized")
-    return db_note
+) -> NoteResponse:
+    """
+    Update a note (author or admin only).
+    """
+    is_admin = current_user.user_type == "admin"
+    note = crud_note.update_note(db, note_id, note_update, current_user.id)
+    
+    if not note:
+        if is_admin:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Note not found"
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authorized to update this note"
+            )
+    
+    return note
 
-@router.delete("/{noteId}/", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{note_id}/", status_code=status.HTTP_204_NO_CONTENT)
 def delete_note(
-    noteId: int,
+    note_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
-):
-    is_admin = current_user.role == "admin"
-    success = crud_note.delete_note(db, noteId, current_user.id, is_admin)
+) -> None:
+    """
+    Delete a note (author or admin only).
+    """
+    is_admin = current_user.user_type == "admin"
+    success = crud_note.delete_note(db, note_id, current_user.id, is_admin)
+    
     if not success:
-        raise HTTPException(status_code=404, detail="Note not found or not authorized")
-    return
+        if is_admin:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Note not found"
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authorized to delete this note"
+            )
 
-@router.post("/{noteId}/like/", response_model=LikeToggleResponse)
+@router.post("/{note_id}/like/", response_model=LikeToggleResponse)
 def toggle_like(
-    noteId: int,
+    note_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
-):
-    result = crud_note.toggle_like(db, noteId, current_user.id)
+) -> LikeToggleResponse:
+    """
+    Toggle like on a note.
+    """
+    result = crud_note.toggle_like(db, note_id, current_user.id)
     return result
 
-@router.get("/{noteId}/download/")
-def download_note(noteId: int):
-    
-    # TODO: integrate with PDF/DOCX generator (e.g., WeasyPrint, python-docx)
-    raise HTTPException(status_code=501, detail="Download feature not implemented")
-
-@router.get("/search/", response_model=List[NoteOut])
-def search_notes(
-    q: str,
+@router.post("/{note_id}/favorite/", response_model=FavoriteToggleResponse)
+def toggle_favorite(
+    note_id: int,
     db: Session = Depends(get_db),
-    skip: int = 0,
-    limit: int = 20
-):
-    notes = crud_note.get_notes(db, skip=skip, limit=limit, search=q)
-    return notes
+    current_user: User = Depends(get_current_user)
+) -> FavoriteToggleResponse:
+    """
+    Toggle favorite status for a note.
+    """
+    result = crud_note.toggle_favorite(db, note_id, current_user.id)
+    return result
 
-# Comments
-@router.get("/{noteId}/comments/", response_model=List[CommentOut])
+# Comments endpoints
+@router.get("/{note_id}/comments/", response_model=List[CommentResponse])
 def get_comments(
-    noteId: int,
-    skip: int = 0,
-    limit: int = 20,
-    db: Session = Depends(get_db)
-):
-    return crud_note.get_comments(db, noteId, skip, limit)
+    note_id: int,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+) -> List[CommentResponse]:
+    """
+    Get comments for a note.
+    """
+    note = crud_note.get_note(db, note_id)
+    if not note:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Note not found"
+        )
+    
+    return crud_note.get_comments(db, note_id, skip, limit)
 
-@router.post("/{noteId}/comments/", response_model=CommentOut, status_code=status.HTTP_201_CREATED)
+@router.post("/{note_id}/comments/", response_model=CommentResponse, status_code=status.HTTP_201_CREATED)
 def create_comment(
-    noteId: int,
+    note_id: int,
     comment: CommentCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
-):
-    return crud_note.create_comment(db, noteId, current_user.id, comment.content)
+) -> CommentResponse:
+    """
+    Add a comment to a note.
+    """
+    note = crud_note.get_note(db, note_id)
+    if not note:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Note not found"
+        )
+    
+    return crud_note.create_comment(db, note_id, current_user.id, comment.content)
 
-@router.delete("/{noteId}/comments/{commentId}/", status_code=status.HTTP_204_NO_CONTENT)
+@router.put("/{note_id}/comments/{comment_id}/", response_model=CommentResponse)
+def update_comment(
+    note_id: int,
+    comment_id: int,
+    comment_update: CommentUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+) -> CommentResponse:
+    """
+    Update a comment (author or admin only).
+    """
+    # Fetch comments for the note and locate the specific comment by id
+    comments = crud_note.get_comments(db, note_id, skip=0, limit=1000)
+    comment = next((c for c in comments if getattr(c, "id", None) == comment_id), None)
+    if not comment or comment.note_id != note_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Comment not found"
+        )
+    
+    is_admin = current_user.user_type == "admin"
+    if not is_admin and comment.author_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to update this comment"
+        )
+    
+    # Use CRUD update function or direct update
+    comment.content = comment_update.content
+    db.commit()
+    db.refresh(comment)
+    
+    return comment
+
+@router.delete("/{note_id}/comments/{comment_id}/", status_code=status.HTTP_204_NO_CONTENT)
 def delete_comment(
-    noteId: int,
-    commentId: int,
+    note_id: int,
+    comment_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
-):
-    is_admin = current_user.role == "admin"
-    success = crud_note.delete_comment(db, commentId, current_user.id, is_admin)
+) -> None:
+    """
+    Delete a comment (author or admin only).
+    """
+    is_admin = current_user.user_type == "admin"
+    success = crud_note.delete_comment(db, comment_id, current_user.id, is_admin)
+    
     if not success:
-        raise HTTPException(status_code=404, detail="Comment not found or not authorized")
-    return
+        if is_admin:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Comment not found"
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authorized to delete this comment"
+            )
 
-# User-specific
-@router.get("/my-notes/", response_model=List[NoteOut])
+# User-specific endpoints
+@router.get("/my-notes/", response_model=List[NoteResponse])
 def get_my_notes(
-    skip: int = 0,
-    limit: int = 20,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
-):
+) -> List[NoteResponse]:
+    """
+    Get notes created by the current user.
+    """
     return crud_note.get_user_notes(db, current_user.id, skip, limit)
 
-@router.get("/favorites/", response_model=List[NoteOut])
+@router.get("/favorites/", response_model=List[NoteResponse])
 def get_favorites(
-    skip: int = 0,
-    limit: int = 20,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
-):
+) -> List[NoteResponse]:
+    """
+    Get notes favorited by the current user.
+    """
     return crud_note.get_user_favorites(db, current_user.id, skip, limit)
 
-@router.post("/{noteId}/favorite/", response_model=FavoriteToggleResponse)
-def toggle_favorite(
-    noteId: int,
+@router.get("/search/", response_model=List[NoteResponse])
+def search_notes(
+    q: str = Query(..., description="Search query"),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+) -> List[NoteResponse]:
+    """
+    Search notes by title or content.
+    """
+    notes = crud_note.get_notes(db, skip=skip, limit=limit, search=q)
+    return notes
+
+@router.get("/{note_id}/download/")
+def download_note(
+    note_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    result = crud_note.toggle_favorite(db, noteId, current_user.id)
-    return result
+    """
+    Download note file if available.
+    """
+    note = crud_note.get_note(db, note_id)
+    if not note:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Note not found"
+        )
+    if not note.file_url:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No file available for download"
+        )
+    
+    file_path = Path(note.file_url.lstrip("/"))
+    if not file_path.exists():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="File not found"
+        )
+    
+    # FileResponse expects the path as the first argument and does not accept a 'filename'
+    # keyword; provide the download filename via the Content-Disposition header.
+    return FileResponse(
+        str(file_path),
+        media_type="application/octet-stream",
+        headers={"Content-Disposition": f'attachment; filename="{file_path.name}"'}
+    )

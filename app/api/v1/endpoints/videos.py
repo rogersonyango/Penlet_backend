@@ -9,9 +9,9 @@ from app.schemas.video import (
     VideoListResponse,
     ProgressUpdate,
     ProgressResponse,
-    CommentCreate,
-    CommentResponse,
-    LikeResponse
+    VideoCommentCreate,
+    VideoCommentResponse,
+    # LikeResponse
 )
 from app.crud import video as crud_video
 
@@ -223,33 +223,33 @@ def get_all_progress(
 
 # ============= LIKE ENDPOINTS =============
 
-@router.post("/{video_id}/like", response_model=LikeResponse)
-def toggle_like(
-    video_id: str,
-    user_id: str = Query(..., description="User ID (temporary - will use JWT)"),
-    db: Session = Depends(get_db)
-):
-    """Toggle like on a video"""
-    liked, like_count = crud_video.toggle_like(db, video_id, user_id)
+# @router.post("/{video_id}/like", response_model=LikeResponse)
+# def toggle_like(
+#     video_id: str,
+#     user_id: str = Query(..., description="User ID (temporary - will use JWT)"),
+#     db: Session = Depends(get_db)
+# ):
+#     """Toggle like on a video"""
+#     liked, like_count = crud_video.toggle_like(db, video_id, user_id)
     
-    return {
-        "liked": liked,
-        "like_count": like_count
-    }
+#     return {
+#         "liked": liked,
+#         "like_count": like_count
+#     }
 
 # ============= COMMENT ENDPOINTS =============
 
-@router.post("/{video_id}/comments", response_model=CommentResponse, status_code=201)
+@router.post("/{video_id}/comments", response_model=VideoCommentResponse, status_code=201)
 def add_comment(
     video_id: str,
-    comment: CommentCreate,
+    comment: VideoCommentCreate,
     user_id: str = Query(..., description="User ID (temporary - will use JWT)"),
     db: Session = Depends(get_db)
 ):
     """Add a comment to a video"""
     return crud_video.add_comment(db, video_id, user_id, comment)
 
-@router.get("/{video_id}/comments", response_model=list[CommentResponse])
+@router.get("/{video_id}/comments", response_model=list[VideoCommentResponse])
 def get_comments(
     video_id: str,
     db: Session = Depends(get_db)
