@@ -1,0 +1,38 @@
+ImportError while loading conftest '/home/nakato/Penlet_backend/tests/conftest.py'.
+tests/conftest.py:33: in <module>
+    Base.metadata.create_all(bind=engine)
+../.local/lib/python3.10/site-packages/sqlalchemy/sql/schema.py:5924: in create_all
+    bind._run_ddl_visitor(
+../.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py:3248: in _run_ddl_visitor
+    conn._run_ddl_visitor(visitorcallable, element, **kwargs)
+../.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py:2455: in _run_ddl_visitor
+    ).traverse_single(element)
+../.local/lib/python3.10/site-packages/sqlalchemy/sql/visitors.py:664: in traverse_single
+    return meth(obj, **kw)
+../.local/lib/python3.10/site-packages/sqlalchemy/sql/ddl.py:961: in visit_metadata
+    [t for t in tables if self._can_create_table(t)]
+../.local/lib/python3.10/site-packages/sqlalchemy/sql/ddl.py:961: in <listcomp>
+    [t for t in tables if self._can_create_table(t)]
+../.local/lib/python3.10/site-packages/sqlalchemy/sql/ddl.py:926: in _can_create_table
+    return not self.checkfirst or not self.dialect.has_table(
+../.local/lib/python3.10/site-packages/sqlalchemy/engine/reflection.py:89: in cache
+    return fn(self, con, *args, **kw)
+../.local/lib/python3.10/site-packages/sqlalchemy/dialects/sqlite/base.py:2296: in has_table
+    info = self._get_table_pragma(
+../.local/lib/python3.10/site-packages/sqlalchemy/dialects/sqlite/base.py:2934: in _get_table_pragma
+    cursor = connection.exec_driver_sql(statement)
+../.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py:1775: in exec_driver_sql
+    ret = self._execute_context(
+../.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py:1842: in _execute_context
+    return self._exec_single_context(
+../.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py:1982: in _exec_single_context
+    self._handle_dbapi_exception(
+../.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py:2351: in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+../.local/lib/python3.10/site-packages/sqlalchemy/engine/base.py:1963: in _exec_single_context
+    self.dialect.do_execute(
+../.local/lib/python3.10/site-packages/sqlalchemy/engine/default.py:943: in do_execute
+    cursor.execute(statement, parameters)
+E   sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) database is locked
+E   [SQL: PRAGMA main.table_info("users")]
+E   (Background on this error at: https://sqlalche.me/e/20/e3q8)

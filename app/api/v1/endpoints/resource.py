@@ -1,4 +1,3 @@
-# app/api/v1/endpoints/resource.py
 """
 3D Resource API endpoints for listing, uploading, retrieving, updating, and deleting 3D educational resources.
 Supports advanced filtering (title, description, format, featured, date ranges), search, and pagination.
@@ -20,13 +19,13 @@ from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
-# ✅ Explicit imports to avoid Pylint E1101
+# ✅ Correct imports - using the actual schema classes
 from app.schemas.resource import (
-    Resource,
     ResourceCreate,
     ResourceUpdate,
-    ResourceList,
-    ResourceCategory
+    ResourceResponse,
+    ResourceListResponse,
+    ResourceCategoryResponse
 )
 from app.crud.resource import (
     get_resources,
@@ -48,7 +47,7 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 router = APIRouter(prefix="/api/3d-resources", tags=["3D Resources"])
 
 
-@router.get("/", response_model=ResourceList)
+@router.get("/", response_model=ResourceListResponse)
 def list_resources(
     title: Optional[str] = Query(None, description="Partial match on title"),
     description: Optional[str] = Query(None, description="Partial match on description"),
@@ -61,7 +60,7 @@ def list_resources(
     page: int = Query(1, ge=1, description="Page number (≥1)"),
     size: int = Query(10, ge=1, le=100, description="Items per page (1–100)"),
     db: Session = Depends(get_db),
-) -> ResourceList:
+) -> ResourceListResponse:
     """List 3D resources with advanced filtering and pagination."""
     # Parse datetime strings
     after_dt = None
@@ -102,10 +101,15 @@ def list_resources(
         created_after=after_dt,
         created_before=before_dt,
     )
-    return ResourceList(items=resources, total=total, page=page, size=size)
+    return ResourceListResponse(
+        items=resources, 
+        total=total, 
+        page=page, 
+        page_size=size
+    )
 
 
-@router.post("/", response_model=Resource, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=ResourceResponse, status_code=status.HTTP_201_CREATED)
 async def upload_new_resource(
     title: str,
     subject: str,
@@ -114,7 +118,7 @@ async def upload_new_resource(
     is_featured: bool = False,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-) -> Resource:
+) -> ResourceResponse:
     """Upload a new 3D resource (GLB/GLTF/OBJ)."""
     allowed_ext = {".glb", ".gltf", ".obj"}
     filename = file.filename or ""
@@ -126,11 +130,16 @@ async def upload_new_resource(
             detail="Invalid file format. Supported: .glb, .gltf, .obj"
         )
 
-    safe_filename = f"{hash(filename + str(file.size))}{ext}"
+    # Generate a unique filename
+    import uuid
+    unique_id = uuid.uuid4().hex[:8]
+    safe_filename = f"{unique_id}_{Path(filename).stem}{ext}"
     file_path = UPLOAD_DIR / safe_filename
 
+    # Save the file
     with open(file_path, "wb") as f:
-        f.write(await file.read())
+        content = await file.read()
+        f.write(content)
 
     resource_in = ResourceCreate(
         title=title,
@@ -138,13 +147,19 @@ async def upload_new_resource(
         subject=subject,
         category_id=category_id,
         is_featured=is_featured,
-        file_format=ext[1:],
+        file_format=ext[1:],  # Remove the dot
     )
-    return create_resource(db=db, resource=resource_in, file_path=str(file_path))
+    
+    created_resource = create_resource(
+        db=db, 
+        resource=resource_in, 
+        file_path=str(file_path)
+    )
+    return created_resource
 
 
-@router.get("/{resourceId}/", response_model=Resource)
-def get_resource_by_id(resourceId: int, db: Session = Depends(get_db)) -> Resource:
+@router.get("/{resourceId}/", response_model=ResourceResponse)
+def get_resource_by_id(resourceId: int, db: Session = Depends(get_db)) -> ResourceResponse:
     """Get a specific 3D resource by ID."""
     resource = crud_get_resource(db, resourceId)
     if not resource:
@@ -152,12 +167,12 @@ def get_resource_by_id(resourceId: int, db: Session = Depends(get_db)) -> Resour
     return resource
 
 
-@router.put("/{resourceId}/", response_model=Resource)
+@router.put("/{resourceId}/", response_model=ResourceResponse)
 def update_existing_resource(
     resourceId: int,
     resource_update: ResourceUpdate,
     db: Session = Depends(get_db),
-) -> Resource:
+) -> ResourceResponse:
     """Update metadata of an existing resource."""
     resource = update_resource(db, resourceId, resource_update)
     if not resource:
@@ -183,25 +198,26 @@ def track_resource_view(resourceId: int, db: Session = Depends(get_db)) -> dict:
     return {"view_count": resource.view_count}
 
 
-@router.get("/categories/", response_model=List[ResourceCategory])
-def get_resource_categories(db: Session = Depends(get_db)) -> List[ResourceCategory]:
+@router.get("/categories/", response_model=List[ResourceCategoryResponse])
+def get_resource_categories(db: Session = Depends(get_db)) -> List[ResourceCategoryResponse]:
     """List all resource categories."""
-    return crud_get_categories(db)
+    categories = crud_get_categories(db)
+    return categories
 
 
-@router.get("/search/", response_model=List[Resource])
+@router.get("/search/", response_model=List[ResourceResponse])
 def search_3d_resources(
-    q: str,
-    category_id: Optional[int] = Query(None),
-    file_format: Optional[str] = Query(None),
-    is_featured: Optional[bool] = Query(None),
-    page: int = Query(1, ge=1),
-    size: int = Query(10, ge=1, le=50),
+    q: str = Query(..., description="Search query"),
+    category_id: Optional[int] = Query(None, description="Filter by category"),
+    file_format: Optional[str] = Query(None, description="Filter by file format"),
+    is_featured: Optional[bool] = Query(None, description="Filter featured resources"),
+    page: int = Query(1, ge=1, description="Page number"),
+    size: int = Query(10, ge=1, le=50, description="Items per page"),
     db: Session = Depends(get_db),
-) -> List[Resource]:
+) -> List[ResourceResponse]:
     """Full-text search in title, description, or subject + optional filters."""
     skip = (page - 1) * size
-    return search_resources(
+    resources = search_resources(
         db,
         query=q,
         skip=skip,
@@ -210,14 +226,19 @@ def search_3d_resources(
         file_format=file_format,
         is_featured=is_featured,
     )
+    return resources
 
 
 @router.get("/{resourceId}/download/")
 def download_3d_resource(resourceId: int, db: Session = Depends(get_db)):
     """Download the 3D model file."""
     resource = crud_get_resource(db, resourceId)
-    if not resource or not os.path.exists(resource.file_path):
-        raise HTTPException(status_code=404, detail="File not found")
+    if not resource:
+        raise HTTPException(status_code=404, detail="Resource not found")
+    
+    if not os.path.exists(resource.file_path):
+        raise HTTPException(status_code=404, detail="File not found on server")
+        
     return FileResponse(
         path=resource.file_path,
         filename=os.path.basename(resource.file_path),
@@ -225,12 +246,13 @@ def download_3d_resource(resourceId: int, db: Session = Depends(get_db)):
     )
 
 
-@router.get("/featured/", response_model=List[Resource])
+@router.get("/featured/", response_model=List[ResourceResponse])
 def get_featured_resources_endpoint(
-    page: int = Query(1, ge=1),
-    size: int = Query(10, ge=1, le=50),
+    page: int = Query(1, ge=1, description="Page number"),
+    size: int = Query(10, ge=1, le=50, description="Items per page"),
     db: Session = Depends(get_db),
-) -> List[Resource]:
+) -> List[ResourceResponse]:
     """Get paginated list of featured 3D resources."""
     skip = (page - 1) * size
-    return get_featured_resources(db, skip=skip, limit=size)
+    resources = get_featured_resources(db, skip=skip, limit=size)
+    return resources

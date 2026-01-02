@@ -1,13 +1,16 @@
+# app/main.py
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.v1.endpoints import auth, subjects, videos  # videos must be here
-from app.models import user, subject, video  
-from app.api.v1.endpoints import auth, note
-from app.models import user
+from app.api.v1.endpoints import auth, subjects, videos, note, timetable, alarms, reminder, quizzes, resource, system, flashcards
+from app.models import user, subject, video
 from app.db.session import Base, engine
-from app.api.v1.endpoints import timetable, alarms,reminder, quizzes, resource, system, flashcards
+import os
 
-Base.metadata.create_all(bind=engine)
+
+# Base.metadata.create_all(bind=engine)
+if os.getenv("TESTING") != "1":
+    Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Penlet API", version="1.0.0")
 
@@ -30,7 +33,7 @@ app.include_router(system.router, prefix="/api/system", tags=["system"])
 app.include_router(quizzes.router, prefix="/api/quizzes", tags=["quizzes"])
 app.include_router(reminder.router, prefix="/api/reminders", tags=["reminders"])
 # app.include_router(timetable.router, prefix="/api/timetable", tags=["Timetable"])
-app.include_router(timetable.router, tags=["Timetable"])
+app.include_router(timetable.router, prefix="/api/v1/timetable", tags=["Timetable"])
 
 
 

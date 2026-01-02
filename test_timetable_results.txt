@@ -1,0 +1,459 @@
+============================= test session starts ==============================
+platform linux -- Python 3.10.12, pytest-9.0.2, pluggy-1.6.0 -- /usr/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/nakato/Penlet_backend
+plugins: anyio-4.9.0, dash-3.3.0, asyncio-1.3.0
+asyncio: mode=strict, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 21 items
+
+tests/test_timetable.py::TestTimetableCRUD::test_create_timetable ERROR  [  4%]
+tests/test_timetable.py::TestTimetableCRUD::test_create_multiple_timetables ERROR [  9%]
+tests/test_timetable.py::TestTimetableCRUD::test_get_timetables_list ERROR [ 14%]
+tests/test_timetable.py::TestTimetableCRUD::test_get_timetables_with_pagination ERROR [ 19%]
+tests/test_timetable.py::TestTimetableCRUD::test_get_single_timetable ERROR [ 23%]
+tests/test_timetable.py::TestTimetableCRUD::test_get_nonexistent_timetable ERROR [ 28%]
+tests/test_timetable.py::TestTimetableCRUD::test_update_timetable ERROR  [ 33%]
+tests/test_timetable.py::TestTimetableCRUD::test_delete_timetable ERROR  [ 38%]
+tests/test_timetable.py::TestTimeSlots::test_create_time_slot ERROR      [ 42%]
+tests/test_timetable.py::TestTimeSlots::test_create_time_slot_invalid_time ERROR [ 47%]
+tests/test_timetable.py::TestTimeSlots::test_create_time_slot_invalid_day ERROR [ 52%]
+tests/test_timetable.py::TestTimeSlots::test_get_time_slots ERROR        [ 57%]
+tests/test_timetable.py::TestTimeSlots::test_filter_slots_by_day ERROR   [ 61%]
+tests/test_timetable.py::TestTimeSlots::test_update_time_slot ERROR      [ 66%]
+tests/test_timetable.py::TestTimeSlots::test_delete_time_slot ERROR      [ 71%]
+tests/test_timetable.py::TestTimeSlots::test_toggle_slot_active ERROR    [ 76%]
+tests/test_timetable.py::TestScheduleEndpoints::test_get_daily_schedule ERROR [ 80%]
+tests/test_timetable.py::TestScheduleEndpoints::test_get_weekly_schedule ERROR [ 85%]
+tests/test_timetable.py::TestScheduleEndpoints::test_get_current_classes ERROR [ 90%]
+tests/test_timetable.py::TestScheduleEndpoints::test_get_next_class ERROR [ 95%]
+tests/test_timetable.py::TestScheduleEndpoints::test_get_timetable_stats ERROR [100%]
+
+==================================== ERRORS ====================================
+__________ ERROR at setup of TestTimetableCRUD.test_create_timetable ___________
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:2522: in get_property
+    return self._props[key]
+E   KeyError: 'category'
+
+The above exception was the direct cause of the following exception:
+../.local/lib/python3.10/site-packages/pytest_asyncio/plugin.py:728: in pytest_fixture_setup
+    return (yield)
+tests/conftest.py:91: in test_user
+    user = User(
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/state.py:566: in _initialize_instance
+    manager.dispatch.init(self, args, kwargs)
+../.local/lib/python3.10/site-packages/sqlalchemy/event/attr.py:497: in __call__
+    fn(*args, **kw)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4406: in _event_on_init
+    instrumenting_mapper._check_configure()
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:2401: in _check_configure
+    _configure_registries({self.registry}, cascade=True)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4214: in _configure_registries
+    _do_configure_registries(registries, cascade)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4255: in _do_configure_registries
+    mapper._post_configure_properties()
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:2418: in _post_configure_properties
+    prop.init()
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/interfaces.py:589: in init
+    self.do_init()
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/relationships.py:1661: in do_init
+    self._generate_backref()
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/relationships.py:2145: in _generate_backref
+    self._add_reverse_property(self.back_populates)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/relationships.py:1592: in _add_reverse_property
+    other = self.mapper.get_property(key, _configure_mappers=False)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:2524: in get_property
+    raise sa_exc.InvalidRequestError(
+E   sqlalchemy.exc.InvalidRequestError: Mapper 'Mapper[Resource(resources)]' has no property 'category'.  If this property was indicated from other mappers or configure events, ensure registry.configure() has been called.
+_____ ERROR at setup of TestTimetableCRUD.test_create_multiple_timetables ______
+../.local/lib/python3.10/site-packages/pytest_asyncio/plugin.py:728: in pytest_fixture_setup
+    return (yield)
+tests/conftest.py:91: in test_user
+    user = User(
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/state.py:566: in _initialize_instance
+    manager.dispatch.init(self, args, kwargs)
+../.local/lib/python3.10/site-packages/sqlalchemy/event/attr.py:497: in __call__
+    fn(*args, **kw)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4406: in _event_on_init
+    instrumenting_mapper._check_configure()
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:2401: in _check_configure
+    _configure_registries({self.registry}, cascade=True)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4214: in _configure_registries
+    _do_configure_registries(registries, cascade)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4251: in _do_configure_registries
+    raise e
+E   sqlalchemy.exc.InvalidRequestError: One or more mappers failed to initialize - can't proceed with initialization of other mappers. Triggering mapper: 'Mapper[ResourceCategory(resource_categories)]'. Original exception was: Mapper 'Mapper[Resource(resources)]' has no property 'category'.  If this property was indicated from other mappers or configure events, ensure registry.configure() has been called.
+_________ ERROR at setup of TestTimetableCRUD.test_get_timetables_list _________
+../.local/lib/python3.10/site-packages/pytest_asyncio/plugin.py:728: in pytest_fixture_setup
+    return (yield)
+tests/conftest.py:91: in test_user
+    user = User(
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/state.py:566: in _initialize_instance
+    manager.dispatch.init(self, args, kwargs)
+../.local/lib/python3.10/site-packages/sqlalchemy/event/attr.py:497: in __call__
+    fn(*args, **kw)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4406: in _event_on_init
+    instrumenting_mapper._check_configure()
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:2401: in _check_configure
+    _configure_registries({self.registry}, cascade=True)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4214: in _configure_registries
+    _do_configure_registries(registries, cascade)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4251: in _do_configure_registries
+    raise e
+E   sqlalchemy.exc.InvalidRequestError: One or more mappers failed to initialize - can't proceed with initialization of other mappers. Triggering mapper: 'Mapper[ResourceCategory(resource_categories)]'. Original exception was: Mapper 'Mapper[Resource(resources)]' has no property 'category'.  If this property was indicated from other mappers or configure events, ensure registry.configure() has been called.
+___ ERROR at setup of TestTimetableCRUD.test_get_timetables_with_pagination ____
+../.local/lib/python3.10/site-packages/pytest_asyncio/plugin.py:728: in pytest_fixture_setup
+    return (yield)
+tests/conftest.py:91: in test_user
+    user = User(
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/state.py:566: in _initialize_instance
+    manager.dispatch.init(self, args, kwargs)
+../.local/lib/python3.10/site-packages/sqlalchemy/event/attr.py:497: in __call__
+    fn(*args, **kw)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4406: in _event_on_init
+    instrumenting_mapper._check_configure()
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:2401: in _check_configure
+    _configure_registries({self.registry}, cascade=True)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4214: in _configure_registries
+    _do_configure_registries(registries, cascade)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4251: in _do_configure_registries
+    raise e
+E   sqlalchemy.exc.InvalidRequestError: One or more mappers failed to initialize - can't proceed with initialization of other mappers. Triggering mapper: 'Mapper[ResourceCategory(resource_categories)]'. Original exception was: Mapper 'Mapper[Resource(resources)]' has no property 'category'.  If this property was indicated from other mappers or configure events, ensure registry.configure() has been called.
+________ ERROR at setup of TestTimetableCRUD.test_get_single_timetable _________
+../.local/lib/python3.10/site-packages/pytest_asyncio/plugin.py:728: in pytest_fixture_setup
+    return (yield)
+tests/conftest.py:91: in test_user
+    user = User(
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/state.py:566: in _initialize_instance
+    manager.dispatch.init(self, args, kwargs)
+../.local/lib/python3.10/site-packages/sqlalchemy/event/attr.py:497: in __call__
+    fn(*args, **kw)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4406: in _event_on_init
+    instrumenting_mapper._check_configure()
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:2401: in _check_configure
+    _configure_registries({self.registry}, cascade=True)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4214: in _configure_registries
+    _do_configure_registries(registries, cascade)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4251: in _do_configure_registries
+    raise e
+E   sqlalchemy.exc.InvalidRequestError: One or more mappers failed to initialize - can't proceed with initialization of other mappers. Triggering mapper: 'Mapper[ResourceCategory(resource_categories)]'. Original exception was: Mapper 'Mapper[Resource(resources)]' has no property 'category'.  If this property was indicated from other mappers or configure events, ensure registry.configure() has been called.
+______ ERROR at setup of TestTimetableCRUD.test_get_nonexistent_timetable ______
+../.local/lib/python3.10/site-packages/pytest_asyncio/plugin.py:728: in pytest_fixture_setup
+    return (yield)
+tests/conftest.py:91: in test_user
+    user = User(
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/state.py:566: in _initialize_instance
+    manager.dispatch.init(self, args, kwargs)
+../.local/lib/python3.10/site-packages/sqlalchemy/event/attr.py:497: in __call__
+    fn(*args, **kw)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4406: in _event_on_init
+    instrumenting_mapper._check_configure()
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:2401: in _check_configure
+    _configure_registries({self.registry}, cascade=True)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4214: in _configure_registries
+    _do_configure_registries(registries, cascade)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4251: in _do_configure_registries
+    raise e
+E   sqlalchemy.exc.InvalidRequestError: One or more mappers failed to initialize - can't proceed with initialization of other mappers. Triggering mapper: 'Mapper[ResourceCategory(resource_categories)]'. Original exception was: Mapper 'Mapper[Resource(resources)]' has no property 'category'.  If this property was indicated from other mappers or configure events, ensure registry.configure() has been called.
+__________ ERROR at setup of TestTimetableCRUD.test_update_timetable ___________
+../.local/lib/python3.10/site-packages/pytest_asyncio/plugin.py:728: in pytest_fixture_setup
+    return (yield)
+tests/conftest.py:91: in test_user
+    user = User(
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/state.py:566: in _initialize_instance
+    manager.dispatch.init(self, args, kwargs)
+../.local/lib/python3.10/site-packages/sqlalchemy/event/attr.py:497: in __call__
+    fn(*args, **kw)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4406: in _event_on_init
+    instrumenting_mapper._check_configure()
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:2401: in _check_configure
+    _configure_registries({self.registry}, cascade=True)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4214: in _configure_registries
+    _do_configure_registries(registries, cascade)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4251: in _do_configure_registries
+    raise e
+E   sqlalchemy.exc.InvalidRequestError: One or more mappers failed to initialize - can't proceed with initialization of other mappers. Triggering mapper: 'Mapper[ResourceCategory(resource_categories)]'. Original exception was: Mapper 'Mapper[Resource(resources)]' has no property 'category'.  If this property was indicated from other mappers or configure events, ensure registry.configure() has been called.
+__________ ERROR at setup of TestTimetableCRUD.test_delete_timetable ___________
+../.local/lib/python3.10/site-packages/pytest_asyncio/plugin.py:728: in pytest_fixture_setup
+    return (yield)
+tests/conftest.py:91: in test_user
+    user = User(
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/state.py:566: in _initialize_instance
+    manager.dispatch.init(self, args, kwargs)
+../.local/lib/python3.10/site-packages/sqlalchemy/event/attr.py:497: in __call__
+    fn(*args, **kw)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4406: in _event_on_init
+    instrumenting_mapper._check_configure()
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:2401: in _check_configure
+    _configure_registries({self.registry}, cascade=True)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4214: in _configure_registries
+    _do_configure_registries(registries, cascade)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4251: in _do_configure_registries
+    raise e
+E   sqlalchemy.exc.InvalidRequestError: One or more mappers failed to initialize - can't proceed with initialization of other mappers. Triggering mapper: 'Mapper[ResourceCategory(resource_categories)]'. Original exception was: Mapper 'Mapper[Resource(resources)]' has no property 'category'.  If this property was indicated from other mappers or configure events, ensure registry.configure() has been called.
+____________ ERROR at setup of TestTimeSlots.test_create_time_slot _____________
+../.local/lib/python3.10/site-packages/pytest_asyncio/plugin.py:728: in pytest_fixture_setup
+    return (yield)
+tests/conftest.py:91: in test_user
+    user = User(
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/state.py:566: in _initialize_instance
+    manager.dispatch.init(self, args, kwargs)
+../.local/lib/python3.10/site-packages/sqlalchemy/event/attr.py:497: in __call__
+    fn(*args, **kw)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4406: in _event_on_init
+    instrumenting_mapper._check_configure()
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:2401: in _check_configure
+    _configure_registries({self.registry}, cascade=True)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4214: in _configure_registries
+    _do_configure_registries(registries, cascade)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4251: in _do_configure_registries
+    raise e
+E   sqlalchemy.exc.InvalidRequestError: One or more mappers failed to initialize - can't proceed with initialization of other mappers. Triggering mapper: 'Mapper[ResourceCategory(resource_categories)]'. Original exception was: Mapper 'Mapper[Resource(resources)]' has no property 'category'.  If this property was indicated from other mappers or configure events, ensure registry.configure() has been called.
+______ ERROR at setup of TestTimeSlots.test_create_time_slot_invalid_time ______
+../.local/lib/python3.10/site-packages/pytest_asyncio/plugin.py:728: in pytest_fixture_setup
+    return (yield)
+tests/conftest.py:91: in test_user
+    user = User(
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/state.py:566: in _initialize_instance
+    manager.dispatch.init(self, args, kwargs)
+../.local/lib/python3.10/site-packages/sqlalchemy/event/attr.py:497: in __call__
+    fn(*args, **kw)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4406: in _event_on_init
+    instrumenting_mapper._check_configure()
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:2401: in _check_configure
+    _configure_registries({self.registry}, cascade=True)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4214: in _configure_registries
+    _do_configure_registries(registries, cascade)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4251: in _do_configure_registries
+    raise e
+E   sqlalchemy.exc.InvalidRequestError: One or more mappers failed to initialize - can't proceed with initialization of other mappers. Triggering mapper: 'Mapper[ResourceCategory(resource_categories)]'. Original exception was: Mapper 'Mapper[Resource(resources)]' has no property 'category'.  If this property was indicated from other mappers or configure events, ensure registry.configure() has been called.
+______ ERROR at setup of TestTimeSlots.test_create_time_slot_invalid_day _______
+../.local/lib/python3.10/site-packages/pytest_asyncio/plugin.py:728: in pytest_fixture_setup
+    return (yield)
+tests/conftest.py:91: in test_user
+    user = User(
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/state.py:566: in _initialize_instance
+    manager.dispatch.init(self, args, kwargs)
+../.local/lib/python3.10/site-packages/sqlalchemy/event/attr.py:497: in __call__
+    fn(*args, **kw)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4406: in _event_on_init
+    instrumenting_mapper._check_configure()
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:2401: in _check_configure
+    _configure_registries({self.registry}, cascade=True)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4214: in _configure_registries
+    _do_configure_registries(registries, cascade)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4251: in _do_configure_registries
+    raise e
+E   sqlalchemy.exc.InvalidRequestError: One or more mappers failed to initialize - can't proceed with initialization of other mappers. Triggering mapper: 'Mapper[ResourceCategory(resource_categories)]'. Original exception was: Mapper 'Mapper[Resource(resources)]' has no property 'category'.  If this property was indicated from other mappers or configure events, ensure registry.configure() has been called.
+_____________ ERROR at setup of TestTimeSlots.test_get_time_slots ______________
+../.local/lib/python3.10/site-packages/pytest_asyncio/plugin.py:728: in pytest_fixture_setup
+    return (yield)
+tests/conftest.py:91: in test_user
+    user = User(
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/state.py:566: in _initialize_instance
+    manager.dispatch.init(self, args, kwargs)
+../.local/lib/python3.10/site-packages/sqlalchemy/event/attr.py:497: in __call__
+    fn(*args, **kw)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4406: in _event_on_init
+    instrumenting_mapper._check_configure()
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:2401: in _check_configure
+    _configure_registries({self.registry}, cascade=True)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4214: in _configure_registries
+    _do_configure_registries(registries, cascade)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4251: in _do_configure_registries
+    raise e
+E   sqlalchemy.exc.InvalidRequestError: One or more mappers failed to initialize - can't proceed with initialization of other mappers. Triggering mapper: 'Mapper[ResourceCategory(resource_categories)]'. Original exception was: Mapper 'Mapper[Resource(resources)]' has no property 'category'.  If this property was indicated from other mappers or configure events, ensure registry.configure() has been called.
+___________ ERROR at setup of TestTimeSlots.test_filter_slots_by_day ___________
+../.local/lib/python3.10/site-packages/pytest_asyncio/plugin.py:728: in pytest_fixture_setup
+    return (yield)
+tests/conftest.py:91: in test_user
+    user = User(
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/state.py:566: in _initialize_instance
+    manager.dispatch.init(self, args, kwargs)
+../.local/lib/python3.10/site-packages/sqlalchemy/event/attr.py:497: in __call__
+    fn(*args, **kw)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4406: in _event_on_init
+    instrumenting_mapper._check_configure()
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:2401: in _check_configure
+    _configure_registries({self.registry}, cascade=True)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4214: in _configure_registries
+    _do_configure_registries(registries, cascade)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4251: in _do_configure_registries
+    raise e
+E   sqlalchemy.exc.InvalidRequestError: One or more mappers failed to initialize - can't proceed with initialization of other mappers. Triggering mapper: 'Mapper[ResourceCategory(resource_categories)]'. Original exception was: Mapper 'Mapper[Resource(resources)]' has no property 'category'.  If this property was indicated from other mappers or configure events, ensure registry.configure() has been called.
+____________ ERROR at setup of TestTimeSlots.test_update_time_slot _____________
+../.local/lib/python3.10/site-packages/pytest_asyncio/plugin.py:728: in pytest_fixture_setup
+    return (yield)
+tests/conftest.py:91: in test_user
+    user = User(
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/state.py:566: in _initialize_instance
+    manager.dispatch.init(self, args, kwargs)
+../.local/lib/python3.10/site-packages/sqlalchemy/event/attr.py:497: in __call__
+    fn(*args, **kw)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4406: in _event_on_init
+    instrumenting_mapper._check_configure()
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:2401: in _check_configure
+    _configure_registries({self.registry}, cascade=True)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4214: in _configure_registries
+    _do_configure_registries(registries, cascade)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4251: in _do_configure_registries
+    raise e
+E   sqlalchemy.exc.InvalidRequestError: One or more mappers failed to initialize - can't proceed with initialization of other mappers. Triggering mapper: 'Mapper[ResourceCategory(resource_categories)]'. Original exception was: Mapper 'Mapper[Resource(resources)]' has no property 'category'.  If this property was indicated from other mappers or configure events, ensure registry.configure() has been called.
+____________ ERROR at setup of TestTimeSlots.test_delete_time_slot _____________
+../.local/lib/python3.10/site-packages/pytest_asyncio/plugin.py:728: in pytest_fixture_setup
+    return (yield)
+tests/conftest.py:91: in test_user
+    user = User(
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/state.py:566: in _initialize_instance
+    manager.dispatch.init(self, args, kwargs)
+../.local/lib/python3.10/site-packages/sqlalchemy/event/attr.py:497: in __call__
+    fn(*args, **kw)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4406: in _event_on_init
+    instrumenting_mapper._check_configure()
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:2401: in _check_configure
+    _configure_registries({self.registry}, cascade=True)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4214: in _configure_registries
+    _do_configure_registries(registries, cascade)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4251: in _do_configure_registries
+    raise e
+E   sqlalchemy.exc.InvalidRequestError: One or more mappers failed to initialize - can't proceed with initialization of other mappers. Triggering mapper: 'Mapper[ResourceCategory(resource_categories)]'. Original exception was: Mapper 'Mapper[Resource(resources)]' has no property 'category'.  If this property was indicated from other mappers or configure events, ensure registry.configure() has been called.
+___________ ERROR at setup of TestTimeSlots.test_toggle_slot_active ____________
+../.local/lib/python3.10/site-packages/pytest_asyncio/plugin.py:728: in pytest_fixture_setup
+    return (yield)
+tests/conftest.py:91: in test_user
+    user = User(
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/state.py:566: in _initialize_instance
+    manager.dispatch.init(self, args, kwargs)
+../.local/lib/python3.10/site-packages/sqlalchemy/event/attr.py:497: in __call__
+    fn(*args, **kw)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4406: in _event_on_init
+    instrumenting_mapper._check_configure()
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:2401: in _check_configure
+    _configure_registries({self.registry}, cascade=True)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4214: in _configure_registries
+    _do_configure_registries(registries, cascade)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4251: in _do_configure_registries
+    raise e
+E   sqlalchemy.exc.InvalidRequestError: One or more mappers failed to initialize - can't proceed with initialization of other mappers. Triggering mapper: 'Mapper[ResourceCategory(resource_categories)]'. Original exception was: Mapper 'Mapper[Resource(resources)]' has no property 'category'.  If this property was indicated from other mappers or configure events, ensure registry.configure() has been called.
+_______ ERROR at setup of TestScheduleEndpoints.test_get_daily_schedule ________
+../.local/lib/python3.10/site-packages/pytest_asyncio/plugin.py:728: in pytest_fixture_setup
+    return (yield)
+tests/conftest.py:91: in test_user
+    user = User(
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/state.py:566: in _initialize_instance
+    manager.dispatch.init(self, args, kwargs)
+../.local/lib/python3.10/site-packages/sqlalchemy/event/attr.py:497: in __call__
+    fn(*args, **kw)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4406: in _event_on_init
+    instrumenting_mapper._check_configure()
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:2401: in _check_configure
+    _configure_registries({self.registry}, cascade=True)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4214: in _configure_registries
+    _do_configure_registries(registries, cascade)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4251: in _do_configure_registries
+    raise e
+E   sqlalchemy.exc.InvalidRequestError: One or more mappers failed to initialize - can't proceed with initialization of other mappers. Triggering mapper: 'Mapper[ResourceCategory(resource_categories)]'. Original exception was: Mapper 'Mapper[Resource(resources)]' has no property 'category'.  If this property was indicated from other mappers or configure events, ensure registry.configure() has been called.
+_______ ERROR at setup of TestScheduleEndpoints.test_get_weekly_schedule _______
+../.local/lib/python3.10/site-packages/pytest_asyncio/plugin.py:728: in pytest_fixture_setup
+    return (yield)
+tests/conftest.py:91: in test_user
+    user = User(
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/state.py:566: in _initialize_instance
+    manager.dispatch.init(self, args, kwargs)
+../.local/lib/python3.10/site-packages/sqlalchemy/event/attr.py:497: in __call__
+    fn(*args, **kw)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4406: in _event_on_init
+    instrumenting_mapper._check_configure()
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:2401: in _check_configure
+    _configure_registries({self.registry}, cascade=True)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4214: in _configure_registries
+    _do_configure_registries(registries, cascade)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4251: in _do_configure_registries
+    raise e
+E   sqlalchemy.exc.InvalidRequestError: One or more mappers failed to initialize - can't proceed with initialization of other mappers. Triggering mapper: 'Mapper[ResourceCategory(resource_categories)]'. Original exception was: Mapper 'Mapper[Resource(resources)]' has no property 'category'.  If this property was indicated from other mappers or configure events, ensure registry.configure() has been called.
+_______ ERROR at setup of TestScheduleEndpoints.test_get_current_classes _______
+../.local/lib/python3.10/site-packages/pytest_asyncio/plugin.py:728: in pytest_fixture_setup
+    return (yield)
+tests/conftest.py:91: in test_user
+    user = User(
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/state.py:566: in _initialize_instance
+    manager.dispatch.init(self, args, kwargs)
+../.local/lib/python3.10/site-packages/sqlalchemy/event/attr.py:497: in __call__
+    fn(*args, **kw)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4406: in _event_on_init
+    instrumenting_mapper._check_configure()
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:2401: in _check_configure
+    _configure_registries({self.registry}, cascade=True)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4214: in _configure_registries
+    _do_configure_registries(registries, cascade)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4251: in _do_configure_registries
+    raise e
+E   sqlalchemy.exc.InvalidRequestError: One or more mappers failed to initialize - can't proceed with initialization of other mappers. Triggering mapper: 'Mapper[ResourceCategory(resource_categories)]'. Original exception was: Mapper 'Mapper[Resource(resources)]' has no property 'category'.  If this property was indicated from other mappers or configure events, ensure registry.configure() has been called.
+_________ ERROR at setup of TestScheduleEndpoints.test_get_next_class __________
+../.local/lib/python3.10/site-packages/pytest_asyncio/plugin.py:728: in pytest_fixture_setup
+    return (yield)
+tests/conftest.py:91: in test_user
+    user = User(
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/state.py:566: in _initialize_instance
+    manager.dispatch.init(self, args, kwargs)
+../.local/lib/python3.10/site-packages/sqlalchemy/event/attr.py:497: in __call__
+    fn(*args, **kw)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4406: in _event_on_init
+    instrumenting_mapper._check_configure()
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:2401: in _check_configure
+    _configure_registries({self.registry}, cascade=True)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4214: in _configure_registries
+    _do_configure_registries(registries, cascade)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4251: in _do_configure_registries
+    raise e
+E   sqlalchemy.exc.InvalidRequestError: One or more mappers failed to initialize - can't proceed with initialization of other mappers. Triggering mapper: 'Mapper[ResourceCategory(resource_categories)]'. Original exception was: Mapper 'Mapper[Resource(resources)]' has no property 'category'.  If this property was indicated from other mappers or configure events, ensure registry.configure() has been called.
+_______ ERROR at setup of TestScheduleEndpoints.test_get_timetable_stats _______
+../.local/lib/python3.10/site-packages/pytest_asyncio/plugin.py:728: in pytest_fixture_setup
+    return (yield)
+tests/conftest.py:91: in test_user
+    user = User(
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/state.py:566: in _initialize_instance
+    manager.dispatch.init(self, args, kwargs)
+../.local/lib/python3.10/site-packages/sqlalchemy/event/attr.py:497: in __call__
+    fn(*args, **kw)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4406: in _event_on_init
+    instrumenting_mapper._check_configure()
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:2401: in _check_configure
+    _configure_registries({self.registry}, cascade=True)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4214: in _configure_registries
+    _do_configure_registries(registries, cascade)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4251: in _do_configure_registries
+    raise e
+E   sqlalchemy.exc.InvalidRequestError: One or more mappers failed to initialize - can't proceed with initialization of other mappers. Triggering mapper: 'Mapper[ResourceCategory(resource_categories)]'. Original exception was: Mapper 'Mapper[Resource(resources)]' has no property 'category'.  If this property was indicated from other mappers or configure events, ensure registry.configure() has been called.
+=============================== warnings summary ===============================
+../.local/lib/python3.10/site-packages/pydantic/_internal/_config.py:323: 16 warnings
+  /home/nakato/.local/lib/python3.10/site-packages/pydantic/_internal/_config.py:323: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/
+    warnings.warn(DEPRECATION_MESSAGE, DeprecationWarning)
+
+app/db/session.py:8
+  /home/nakato/Penlet_backend/app/db/session.py:8: MovedIn20Warning: The ``declarative_base()`` function is now available as sqlalchemy.orm.declarative_base(). (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    Base = declarative_base()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+ERROR tests/test_timetable.py::TestTimetableCRUD::test_create_timetable - sql...
+ERROR tests/test_timetable.py::TestTimetableCRUD::test_create_multiple_timetables
+ERROR tests/test_timetable.py::TestTimetableCRUD::test_get_timetables_list - ...
+ERROR tests/test_timetable.py::TestTimetableCRUD::test_get_timetables_with_pagination
+ERROR tests/test_timetable.py::TestTimetableCRUD::test_get_single_timetable
+ERROR tests/test_timetable.py::TestTimetableCRUD::test_get_nonexistent_timetable
+ERROR tests/test_timetable.py::TestTimetableCRUD::test_update_timetable - sql...
+ERROR tests/test_timetable.py::TestTimetableCRUD::test_delete_timetable - sql...
+ERROR tests/test_timetable.py::TestTimeSlots::test_create_time_slot - sqlalch...
+ERROR tests/test_timetable.py::TestTimeSlots::test_create_time_slot_invalid_time
+ERROR tests/test_timetable.py::TestTimeSlots::test_create_time_slot_invalid_day
+ERROR tests/test_timetable.py::TestTimeSlots::test_get_time_slots - sqlalchem...
+ERROR tests/test_timetable.py::TestTimeSlots::test_filter_slots_by_day - sqla...
+ERROR tests/test_timetable.py::TestTimeSlots::test_update_time_slot - sqlalch...
+ERROR tests/test_timetable.py::TestTimeSlots::test_delete_time_slot - sqlalch...
+ERROR tests/test_timetable.py::TestTimeSlots::test_toggle_slot_active - sqlal...
+ERROR tests/test_timetable.py::TestScheduleEndpoints::test_get_daily_schedule
+ERROR tests/test_timetable.py::TestScheduleEndpoints::test_get_weekly_schedule
+ERROR tests/test_timetable.py::TestScheduleEndpoints::test_get_current_classes
+ERROR tests/test_timetable.py::TestScheduleEndpoints::test_get_next_class - s...
+ERROR tests/test_timetable.py::TestScheduleEndpoints::test_get_timetable_stats
+======================= 17 warnings, 21 errors in 12.32s =======================

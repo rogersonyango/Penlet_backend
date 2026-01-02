@@ -1,12 +1,11 @@
-# app/schemas/alarm.py 
+# app/schemas/alarm.py
 from pydantic import BaseModel, field_validator, Field
 from datetime import datetime, timezone
 from typing import Optional, Dict, Any
 
 class AlarmBase(BaseModel):
-    """Base schema for alarm data shared across create, update, and read operations."""
-    
-    title: str
+    """Base alarm schema."""
+    title: str = Field(..., min_length=1, max_length=200)
     description: Optional[str] = None
     alarm_time: datetime
     is_active: bool = True
@@ -15,60 +14,67 @@ class AlarmBase(BaseModel):
 
     @field_validator('alarm_time')
     @classmethod
-    def time_must_be_future(cls, value: datetime) -> datetime:
-        """Ensure the alarm time is set in the future (UTC-aware)."""
-        # Make value timezone-aware if naive
-        if value.tzinfo is None:
-            value = value.replace(tzinfo=timezone.utc)
+    def validate_alarm_time(cls, v: datetime) -> datetime:
+        """Ensure alarm time is in the future."""
+        if v.tzinfo is None:
+            v = v.replace(tzinfo=timezone.utc)
         now = datetime.now(timezone.utc)
-        if value <= now:
+        if v <= now:
             raise ValueError('Alarm time must be in the future')
-        return value
+        return v
 
+    @field_validator('recurrence_pattern')
+    @classmethod
+    def validate_recurrence_pattern(cls, v: Optional[Dict[str, Any]], info) -> Optional[Dict[str, Any]]:
+        """Validate recurrence pattern if alarm is recurring."""
+        if info.data.get('is_recurring') and v is None:
+            raise ValueError('Recurrence pattern required for recurring alarms')
+        if v is not None:
+            required_keys = {'frequency', 'interval'}
+            if not required_keys.issubset(v.keys()):
+                raise ValueError(f'Recurrence pattern must include: {required_keys}')
+        return v
 
 class AlarmCreate(AlarmBase):
-    """Schema for creating a new alarm."""
-    pass
-
+    """Schema for creating an alarm."""
+    max_snooze: int = Field(default=3, ge=0, le=10)
 
 class AlarmUpdate(BaseModel):
-    """Schema for updating an existing alarm with optional fields."""
-    
-    title: Optional[str] = None
+    """Schema for updating an alarm."""
+    title: Optional[str] = Field(None, min_length=1, max_length=200)
     description: Optional[str] = None
     alarm_time: Optional[datetime] = None
     is_active: Optional[bool] = None
     is_recurring: Optional[bool] = None
     recurrence_pattern: Optional[Dict[str, Any]] = None
+    max_snooze: Optional[int] = Field(None, ge=0, le=10)
 
     @field_validator('alarm_time')
     @classmethod
-    def validate_alarm_time_if_provided(cls, value: Optional[datetime]) -> Optional[datetime]:
-        """Validate alarm time only if it is provided during update."""
-        if value is not None:
-            if value.tzinfo is None:
-                value = value.replace(tzinfo=timezone.utc)
+    def validate_alarm_time(cls, v: Optional[datetime]) -> Optional[datetime]:
+        """Validate alarm time if provided."""
+        if v is not None:
+            if v.tzinfo is None:
+                v = v.replace(tzinfo=timezone.utc)
             now = datetime.now(timezone.utc)
-            if value <= now:
+            if v <= now:
                 raise ValueError('Alarm time must be in the future')
-        return value
+        return v
 
-
-class AlarmInDBBase(AlarmBase):
-    """Base schema for alarm data as stored in the database."""
-    
+class AlarmResponse(BaseModel):
+    """Schema for alarm response."""
     id: int
-    user_id: int
+    user_id: str
+    title: str
+    description: Optional[str]
+    alarm_time: datetime
+    is_active: bool
+    is_recurring: bool
+    recurrence_pattern: Optional[Dict[str, Any]]
     snooze_count: int
     max_snooze: int
     created_at: datetime
     updated_at: datetime
 
     class Config:
-        """Pydantic v2 ORM mode configuration."""
         from_attributes = True
-
-
-class Alarm(AlarmInDBBase):
-    """Public schema representing a full alarm object."""
-    pass

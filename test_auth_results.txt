@@ -1,0 +1,397 @@
+============================= test session starts ==============================
+platform linux -- Python 3.10.12, pytest-9.0.2, pluggy-1.6.0 -- /usr/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/nakato/Penlet_backend
+plugins: anyio-4.9.0, dash-3.3.0, asyncio-1.3.0
+asyncio: mode=strict, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 9 items
+
+tests/test_auth.py::TestAuthRegistration::test_register_user_success FAILED [ 11%]
+tests/test_auth.py::TestAuthRegistration::test_register_duplicate_email ERROR [ 22%]
+tests/test_auth.py::TestAuthRegistration::test_register_invalid_password PASSED [ 33%]
+tests/test_auth.py::TestAuthRegistration::test_register_missing_fields PASSED [ 44%]
+tests/test_auth.py::TestAuthLogin::test_login_success ERROR              [ 55%]
+tests/test_auth.py::TestAuthLogin::test_login_wrong_password ERROR       [ 66%]
+tests/test_auth.py::TestAuthLogin::test_login_nonexistent_user FAILED    [ 77%]
+tests/test_auth.py::TestAuthToken::test_root_endpoint FAILED             [ 88%]
+tests/test_auth.py::TestAuthToken::test_health_endpoint PASSED           [100%]
+
+==================================== ERRORS ====================================
+_____ ERROR at setup of TestAuthRegistration.test_register_duplicate_email _____
+../.local/lib/python3.10/site-packages/pytest_asyncio/plugin.py:728: in pytest_fixture_setup
+    return (yield)
+tests/conftest.py:91: in test_user
+    user = User(
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/state.py:566: in _initialize_instance
+    manager.dispatch.init(self, args, kwargs)
+../.local/lib/python3.10/site-packages/sqlalchemy/event/attr.py:497: in __call__
+    fn(*args, **kw)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4406: in _event_on_init
+    instrumenting_mapper._check_configure()
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:2401: in _check_configure
+    _configure_registries({self.registry}, cascade=True)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4214: in _configure_registries
+    _do_configure_registries(registries, cascade)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4251: in _do_configure_registries
+    raise e
+E   sqlalchemy.exc.InvalidRequestError: One or more mappers failed to initialize - can't proceed with initialization of other mappers. Triggering mapper: 'Mapper[ResourceCategory(resource_categories)]'. Original exception was: Mapper 'Mapper[Resource(resources)]' has no property 'category'.  If this property was indicated from other mappers or configure events, ensure registry.configure() has been called.
+______________ ERROR at setup of TestAuthLogin.test_login_success ______________
+../.local/lib/python3.10/site-packages/pytest_asyncio/plugin.py:728: in pytest_fixture_setup
+    return (yield)
+tests/conftest.py:91: in test_user
+    user = User(
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/state.py:566: in _initialize_instance
+    manager.dispatch.init(self, args, kwargs)
+../.local/lib/python3.10/site-packages/sqlalchemy/event/attr.py:497: in __call__
+    fn(*args, **kw)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4406: in _event_on_init
+    instrumenting_mapper._check_configure()
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:2401: in _check_configure
+    _configure_registries({self.registry}, cascade=True)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4214: in _configure_registries
+    _do_configure_registries(registries, cascade)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4251: in _do_configure_registries
+    raise e
+E   sqlalchemy.exc.InvalidRequestError: One or more mappers failed to initialize - can't proceed with initialization of other mappers. Triggering mapper: 'Mapper[ResourceCategory(resource_categories)]'. Original exception was: Mapper 'Mapper[Resource(resources)]' has no property 'category'.  If this property was indicated from other mappers or configure events, ensure registry.configure() has been called.
+__________ ERROR at setup of TestAuthLogin.test_login_wrong_password ___________
+../.local/lib/python3.10/site-packages/pytest_asyncio/plugin.py:728: in pytest_fixture_setup
+    return (yield)
+tests/conftest.py:91: in test_user
+    user = User(
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/state.py:566: in _initialize_instance
+    manager.dispatch.init(self, args, kwargs)
+../.local/lib/python3.10/site-packages/sqlalchemy/event/attr.py:497: in __call__
+    fn(*args, **kw)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4406: in _event_on_init
+    instrumenting_mapper._check_configure()
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:2401: in _check_configure
+    _configure_registries({self.registry}, cascade=True)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4214: in _configure_registries
+    _do_configure_registries(registries, cascade)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4251: in _do_configure_registries
+    raise e
+E   sqlalchemy.exc.InvalidRequestError: One or more mappers failed to initialize - can't proceed with initialization of other mappers. Triggering mapper: 'Mapper[ResourceCategory(resource_categories)]'. Original exception was: Mapper 'Mapper[Resource(resources)]' has no property 'category'.  If this property was indicated from other mappers or configure events, ensure registry.configure() has been called.
+=================================== FAILURES ===================================
+_______________ TestAuthRegistration.test_register_user_success ________________
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:2522: in get_property
+    return self._props[key]
+E   KeyError: 'category'
+
+The above exception was the direct cause of the following exception:
+tests/test_auth.py:12: in test_register_user_success
+    response = client.post(
+../.local/lib/python3.10/site-packages/starlette/testclient.py:538: in post
+    return super().post(
+../.local/lib/python3.10/site-packages/httpx/_client.py:1144: in post
+    return self.request(
+../.local/lib/python3.10/site-packages/starlette/testclient.py:437: in request
+    return super().request(
+../.local/lib/python3.10/site-packages/httpx/_client.py:825: in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+../.local/lib/python3.10/site-packages/httpx/_client.py:914: in send
+    response = self._send_handling_auth(
+../.local/lib/python3.10/site-packages/httpx/_client.py:942: in _send_handling_auth
+    response = self._send_handling_redirects(
+../.local/lib/python3.10/site-packages/httpx/_client.py:979: in _send_handling_redirects
+    response = self._send_single_request(request)
+../.local/lib/python3.10/site-packages/httpx/_client.py:1014: in _send_single_request
+    response = transport.handle_request(request)
+../.local/lib/python3.10/site-packages/starlette/testclient.py:340: in handle_request
+    raise exc
+../.local/lib/python3.10/site-packages/starlette/testclient.py:337: in handle_request
+    portal.call(self.app, scope, receive, send)
+../.local/lib/python3.10/site-packages/anyio/from_thread.py:290: in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+/usr/lib/python3.10/concurrent/futures/_base.py:458: in result
+    return self.__get_result()
+/usr/lib/python3.10/concurrent/futures/_base.py:403: in __get_result
+    raise self._exception
+../.local/lib/python3.10/site-packages/anyio/from_thread.py:221: in _call_func
+    retval = await retval_or_awaitable
+../.local/lib/python3.10/site-packages/fastapi/applications.py:1054: in __call__
+    await super().__call__(scope, receive, send)
+../.local/lib/python3.10/site-packages/starlette/applications.py:112: in __call__
+    await self.middleware_stack(scope, receive, send)
+../.local/lib/python3.10/site-packages/starlette/middleware/errors.py:187: in __call__
+    raise exc
+../.local/lib/python3.10/site-packages/starlette/middleware/errors.py:165: in __call__
+    await self.app(scope, receive, _send)
+../.local/lib/python3.10/site-packages/starlette/middleware/cors.py:85: in __call__
+    await self.app(scope, receive, send)
+../.local/lib/python3.10/site-packages/starlette/middleware/exceptions.py:62: in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+../.local/lib/python3.10/site-packages/starlette/_exception_handler.py:53: in wrapped_app
+    raise exc
+../.local/lib/python3.10/site-packages/starlette/_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+../.local/lib/python3.10/site-packages/starlette/routing.py:714: in __call__
+    await self.middleware_stack(scope, receive, send)
+../.local/lib/python3.10/site-packages/starlette/routing.py:734: in app
+    await route.handle(scope, receive, send)
+../.local/lib/python3.10/site-packages/starlette/routing.py:288: in handle
+    await self.app(scope, receive, send)
+../.local/lib/python3.10/site-packages/starlette/routing.py:76: in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+../.local/lib/python3.10/site-packages/starlette/_exception_handler.py:53: in wrapped_app
+    raise exc
+../.local/lib/python3.10/site-packages/starlette/_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+../.local/lib/python3.10/site-packages/starlette/routing.py:73: in app
+    response = await f(request)
+../.local/lib/python3.10/site-packages/fastapi/routing.py:301: in app
+    raw_response = await run_endpoint_function(
+../.local/lib/python3.10/site-packages/fastapi/routing.py:214: in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+../.local/lib/python3.10/site-packages/starlette/concurrency.py:37: in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+../.local/lib/python3.10/site-packages/anyio/to_thread.py:56: in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+../.local/lib/python3.10/site-packages/anyio/_backends/_asyncio.py:2470: in run_sync_in_worker_thread
+    return await future
+../.local/lib/python3.10/site-packages/anyio/_backends/_asyncio.py:967: in run
+    result = context.run(func, *args)
+app/api/v1/endpoints/auth.py:13: in register
+    if crud_user.get_user_by_email(db, user.email):
+app/crud/user.py:15: in get_user_by_email
+    return db.query(User).filter(User.email == email).first()
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py:2955: in query
+    return self._query_cls(entities, self, **kwargs)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/query.py:276: in __init__
+    self._set_entities(entities)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/query.py:288: in _set_entities
+    self._raw_columns = [
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/query.py:289: in <listcomp>
+    coercions.expect(
+../.local/lib/python3.10/site-packages/sqlalchemy/sql/coercions.py:388: in expect
+    insp._post_inspect
+../.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py:1338: in __get__
+    obj.__dict__[self.__name__] = result = self.fget(obj)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:2724: in _post_inspect
+    self._check_configure()
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:2401: in _check_configure
+    _configure_registries({self.registry}, cascade=True)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4214: in _configure_registries
+    _do_configure_registries(registries, cascade)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4255: in _do_configure_registries
+    mapper._post_configure_properties()
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:2418: in _post_configure_properties
+    prop.init()
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/interfaces.py:589: in init
+    self.do_init()
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/relationships.py:1661: in do_init
+    self._generate_backref()
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/relationships.py:2145: in _generate_backref
+    self._add_reverse_property(self.back_populates)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/relationships.py:1592: in _add_reverse_property
+    other = self.mapper.get_property(key, _configure_mappers=False)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:2524: in get_property
+    raise sa_exc.InvalidRequestError(
+E   sqlalchemy.exc.InvalidRequestError: Mapper 'Mapper[Resource(resources)]' has no property 'category'.  If this property was indicated from other mappers or configure events, ensure registry.configure() has been called.
+__________________ TestAuthLogin.test_login_nonexistent_user ___________________
+tests/test_auth.py:96: in test_login_nonexistent_user
+    response = client.post(
+../.local/lib/python3.10/site-packages/starlette/testclient.py:538: in post
+    return super().post(
+../.local/lib/python3.10/site-packages/httpx/_client.py:1144: in post
+    return self.request(
+../.local/lib/python3.10/site-packages/starlette/testclient.py:437: in request
+    return super().request(
+../.local/lib/python3.10/site-packages/httpx/_client.py:825: in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+../.local/lib/python3.10/site-packages/httpx/_client.py:914: in send
+    response = self._send_handling_auth(
+../.local/lib/python3.10/site-packages/httpx/_client.py:942: in _send_handling_auth
+    response = self._send_handling_redirects(
+../.local/lib/python3.10/site-packages/httpx/_client.py:979: in _send_handling_redirects
+    response = self._send_single_request(request)
+../.local/lib/python3.10/site-packages/httpx/_client.py:1014: in _send_single_request
+    response = transport.handle_request(request)
+../.local/lib/python3.10/site-packages/starlette/testclient.py:340: in handle_request
+    raise exc
+../.local/lib/python3.10/site-packages/starlette/testclient.py:337: in handle_request
+    portal.call(self.app, scope, receive, send)
+../.local/lib/python3.10/site-packages/anyio/from_thread.py:290: in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+/usr/lib/python3.10/concurrent/futures/_base.py:458: in result
+    return self.__get_result()
+/usr/lib/python3.10/concurrent/futures/_base.py:403: in __get_result
+    raise self._exception
+../.local/lib/python3.10/site-packages/anyio/from_thread.py:221: in _call_func
+    retval = await retval_or_awaitable
+../.local/lib/python3.10/site-packages/fastapi/applications.py:1054: in __call__
+    await super().__call__(scope, receive, send)
+../.local/lib/python3.10/site-packages/starlette/applications.py:112: in __call__
+    await self.middleware_stack(scope, receive, send)
+../.local/lib/python3.10/site-packages/starlette/middleware/errors.py:187: in __call__
+    raise exc
+../.local/lib/python3.10/site-packages/starlette/middleware/errors.py:165: in __call__
+    await self.app(scope, receive, _send)
+../.local/lib/python3.10/site-packages/starlette/middleware/cors.py:85: in __call__
+    await self.app(scope, receive, send)
+../.local/lib/python3.10/site-packages/starlette/middleware/exceptions.py:62: in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+../.local/lib/python3.10/site-packages/starlette/_exception_handler.py:53: in wrapped_app
+    raise exc
+../.local/lib/python3.10/site-packages/starlette/_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+../.local/lib/python3.10/site-packages/starlette/routing.py:714: in __call__
+    await self.middleware_stack(scope, receive, send)
+../.local/lib/python3.10/site-packages/starlette/routing.py:734: in app
+    await route.handle(scope, receive, send)
+../.local/lib/python3.10/site-packages/starlette/routing.py:288: in handle
+    await self.app(scope, receive, send)
+../.local/lib/python3.10/site-packages/starlette/routing.py:76: in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+../.local/lib/python3.10/site-packages/starlette/_exception_handler.py:53: in wrapped_app
+    raise exc
+../.local/lib/python3.10/site-packages/starlette/_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+../.local/lib/python3.10/site-packages/starlette/routing.py:73: in app
+    response = await f(request)
+../.local/lib/python3.10/site-packages/fastapi/routing.py:301: in app
+    raw_response = await run_endpoint_function(
+../.local/lib/python3.10/site-packages/fastapi/routing.py:214: in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+../.local/lib/python3.10/site-packages/starlette/concurrency.py:37: in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+../.local/lib/python3.10/site-packages/anyio/to_thread.py:56: in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+../.local/lib/python3.10/site-packages/anyio/_backends/_asyncio.py:2470: in run_sync_in_worker_thread
+    return await future
+../.local/lib/python3.10/site-packages/anyio/_backends/_asyncio.py:967: in run
+    result = context.run(func, *args)
+app/api/v1/endpoints/auth.py:30: in login
+    user = crud_user.authenticate_user(db, credentials.email, credentials.password)
+app/crud/user.py:103: in authenticate_user
+    user = get_user_by_email(db, email)
+app/crud/user.py:15: in get_user_by_email
+    return db.query(User).filter(User.email == email).first()
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/session.py:2955: in query
+    return self._query_cls(entities, self, **kwargs)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/query.py:276: in __init__
+    self._set_entities(entities)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/query.py:288: in _set_entities
+    self._raw_columns = [
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/query.py:289: in <listcomp>
+    coercions.expect(
+../.local/lib/python3.10/site-packages/sqlalchemy/sql/coercions.py:388: in expect
+    insp._post_inspect
+../.local/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py:1338: in __get__
+    obj.__dict__[self.__name__] = result = self.fget(obj)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:2724: in _post_inspect
+    self._check_configure()
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:2401: in _check_configure
+    _configure_registries({self.registry}, cascade=True)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4214: in _configure_registries
+    _do_configure_registries(registries, cascade)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4251: in _do_configure_registries
+    raise e
+E   sqlalchemy.exc.InvalidRequestError: One or more mappers failed to initialize - can't proceed with initialization of other mappers. Triggering mapper: 'Mapper[ResourceCategory(resource_categories)]'. Original exception was: Mapper 'Mapper[Resource(resources)]' has no property 'category'.  If this property was indicated from other mappers or configure events, ensure registry.configure() has been called.
+_______________________ TestAuthToken.test_root_endpoint _______________________
+tests/test_auth.py:111: in test_root_endpoint
+    response = client.get("/")
+../.local/lib/python3.10/site-packages/starlette/testclient.py:465: in get
+    return super().get(
+../.local/lib/python3.10/site-packages/httpx/_client.py:1053: in get
+    return self.request(
+../.local/lib/python3.10/site-packages/starlette/testclient.py:437: in request
+    return super().request(
+../.local/lib/python3.10/site-packages/httpx/_client.py:825: in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+../.local/lib/python3.10/site-packages/httpx/_client.py:914: in send
+    response = self._send_handling_auth(
+../.local/lib/python3.10/site-packages/httpx/_client.py:942: in _send_handling_auth
+    response = self._send_handling_redirects(
+../.local/lib/python3.10/site-packages/httpx/_client.py:979: in _send_handling_redirects
+    response = self._send_single_request(request)
+../.local/lib/python3.10/site-packages/httpx/_client.py:1014: in _send_single_request
+    response = transport.handle_request(request)
+../.local/lib/python3.10/site-packages/starlette/testclient.py:340: in handle_request
+    raise exc
+../.local/lib/python3.10/site-packages/starlette/testclient.py:337: in handle_request
+    portal.call(self.app, scope, receive, send)
+../.local/lib/python3.10/site-packages/anyio/from_thread.py:290: in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+/usr/lib/python3.10/concurrent/futures/_base.py:458: in result
+    return self.__get_result()
+/usr/lib/python3.10/concurrent/futures/_base.py:403: in __get_result
+    raise self._exception
+../.local/lib/python3.10/site-packages/anyio/from_thread.py:221: in _call_func
+    retval = await retval_or_awaitable
+../.local/lib/python3.10/site-packages/fastapi/applications.py:1054: in __call__
+    await super().__call__(scope, receive, send)
+../.local/lib/python3.10/site-packages/starlette/applications.py:112: in __call__
+    await self.middleware_stack(scope, receive, send)
+../.local/lib/python3.10/site-packages/starlette/middleware/errors.py:187: in __call__
+    raise exc
+../.local/lib/python3.10/site-packages/starlette/middleware/errors.py:165: in __call__
+    await self.app(scope, receive, _send)
+../.local/lib/python3.10/site-packages/starlette/middleware/cors.py:85: in __call__
+    await self.app(scope, receive, send)
+../.local/lib/python3.10/site-packages/starlette/middleware/exceptions.py:62: in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+../.local/lib/python3.10/site-packages/starlette/_exception_handler.py:53: in wrapped_app
+    raise exc
+../.local/lib/python3.10/site-packages/starlette/_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+../.local/lib/python3.10/site-packages/starlette/routing.py:714: in __call__
+    await self.middleware_stack(scope, receive, send)
+../.local/lib/python3.10/site-packages/starlette/routing.py:734: in app
+    await route.handle(scope, receive, send)
+../.local/lib/python3.10/site-packages/starlette/routing.py:288: in handle
+    await self.app(scope, receive, send)
+../.local/lib/python3.10/site-packages/starlette/routing.py:76: in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+../.local/lib/python3.10/site-packages/starlette/_exception_handler.py:53: in wrapped_app
+    raise exc
+../.local/lib/python3.10/site-packages/starlette/_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+../.local/lib/python3.10/site-packages/starlette/routing.py:73: in app
+    response = await f(request)
+../.local/lib/python3.10/site-packages/fastapi/routing.py:291: in app
+    solved_result = await solve_dependencies(
+../.local/lib/python3.10/site-packages/fastapi/dependencies/utils.py:640: in solve_dependencies
+    solved = await run_in_threadpool(call, **solved_result.values)
+../.local/lib/python3.10/site-packages/starlette/concurrency.py:37: in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+../.local/lib/python3.10/site-packages/anyio/to_thread.py:56: in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+../.local/lib/python3.10/site-packages/anyio/_backends/_asyncio.py:2470: in run_sync_in_worker_thread
+    return await future
+../.local/lib/python3.10/site-packages/anyio/_backends/_asyncio.py:967: in run
+    result = context.run(func, *args)
+tests/conftest.py:45: in override_get_current_user
+    user = User(
+<string>:4: in __init__
+    ???
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/state.py:566: in _initialize_instance
+    manager.dispatch.init(self, args, kwargs)
+../.local/lib/python3.10/site-packages/sqlalchemy/event/attr.py:497: in __call__
+    fn(*args, **kw)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4406: in _event_on_init
+    instrumenting_mapper._check_configure()
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:2401: in _check_configure
+    _configure_registries({self.registry}, cascade=True)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4214: in _configure_registries
+    _do_configure_registries(registries, cascade)
+../.local/lib/python3.10/site-packages/sqlalchemy/orm/mapper.py:4251: in _do_configure_registries
+    raise e
+E   sqlalchemy.exc.InvalidRequestError: One or more mappers failed to initialize - can't proceed with initialization of other mappers. Triggering mapper: 'Mapper[ResourceCategory(resource_categories)]'. Original exception was: Mapper 'Mapper[Resource(resources)]' has no property 'category'.  If this property was indicated from other mappers or configure events, ensure registry.configure() has been called.
+=============================== warnings summary ===============================
+../.local/lib/python3.10/site-packages/pydantic/_internal/_config.py:323: 16 warnings
+  /home/nakato/.local/lib/python3.10/site-packages/pydantic/_internal/_config.py:323: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/
+    warnings.warn(DEPRECATION_MESSAGE, DeprecationWarning)
+
+app/db/session.py:8
+  /home/nakato/Penlet_backend/app/db/session.py:8: MovedIn20Warning: The ``declarative_base()`` function is now available as sqlalchemy.orm.declarative_base(). (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    Base = declarative_base()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_auth.py::TestAuthRegistration::test_register_user_success
+FAILED tests/test_auth.py::TestAuthLogin::test_login_nonexistent_user - sqlal...
+FAILED tests/test_auth.py::TestAuthToken::test_root_endpoint - sqlalchemy.exc...
+ERROR tests/test_auth.py::TestAuthRegistration::test_register_duplicate_email
+ERROR tests/test_auth.py::TestAuthLogin::test_login_success - sqlalchemy.exc....
+ERROR tests/test_auth.py::TestAuthLogin::test_login_wrong_password - sqlalche...
+============= 3 failed, 3 passed, 17 warnings, 3 errors in 12.98s ==============
