@@ -1,9 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.db.session import get_db
-from app.schemas.user import UserCreate, UserLogin, TokenResponse
+from app.schemas.user import UserCreate, UserLogin, TokenResponse, UserResponse
 from app.crud import user as crud_user
 from app.core.security import create_access_token
+from app.utils.auth import get_current_user
+from app.models.user import User
 
 router = APIRouter(prefix="/users", tags=["authentication"])
 
@@ -39,3 +41,12 @@ def login(credentials: UserLogin, db: Session = Depends(get_db)):
         "token_type": "bearer",
         "user": user
     }
+
+@router.get("/me", response_model=UserResponse)
+def get_current_user_info(current_user: User = Depends(get_current_user)):
+    """
+    Get current authenticated user's information
+    
+    This endpoint returns the user's profile data including their role.
+    """
+    return current_user
